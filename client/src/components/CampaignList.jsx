@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { web3Service } from '../utils/web3.js';
 import { toast } from 'sonner';
-import axios from 'axios';
+import api from '../utils/api.js';
 
 const CampaignList = ({ walletAddress }) => {
   const [campaigns, setCampaigns] = useState([]);
@@ -20,7 +20,7 @@ const CampaignList = ({ walletAddress }) => {
       const campaignPromises = activeCampaignIds.map(async (id) => {
         const [blockchainInfo, dbInfo] = await Promise.all([
           web3Service.getCampaignInfo(id),
-          axios.get(`http://localhost:3001/api/campaigns/${id}`).catch(() => ({ data: null }))
+          api.get(`/api/campaigns/${id}`).catch(() => ({ data: null }))
         ]);
 
         return {
@@ -87,8 +87,8 @@ const CampaignList = ({ walletAddress }) => {
   const viewCampaignDetails = async (campaign) => {
     try {
       const [submissions, leaderboard] = await Promise.all([
-        axios.get(`http://localhost:3001/api/campaigns/${campaign.id}/submissions`),
-        axios.get(`http://localhost:3001/api/campaigns/${campaign.id}/leaderboard`)
+        api.get(`/api/campaigns/${campaign.id}/submissions`),
+        api.get(`/api/campaigns/${campaign.id}/leaderboard`)
       ]);
 
       setSelectedCampaign({

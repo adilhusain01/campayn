@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { web3Service } from '../utils/web3.js';
-import axios from 'axios';
+import api from '../utils/api.js';
 import DatePicker from 'react-datepicker';
 import { toast } from 'sonner';
 import "react-datepicker/dist/react-datepicker.css";
@@ -100,7 +100,7 @@ const CreateCampaign = ({ walletAddress }) => {
         formData.rewardAmount
       );
 
-      await axios.post('http://localhost:3001/api/campaigns', {
+      await api.post('/api/campaigns', {
         blockchainId: result.campaignId,
         title: formData.title,
         description: formData.description,

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { web3Service } from '../utils/web3.js';
-import axios from 'axios';
+import api from '../utils/api.js';
 
 const InfluencerDashboard = ({ walletAddress }) => {
   const [profile, setProfile] = useState({
@@ -30,7 +30,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
     try {
       // Load existing profile data
       try {
-        const profileResponse = await axios.get(`http://localhost:3001/api/influencers/${walletAddress}`);
+        const profileResponse = await api.get(`/api/influencers/${walletAddress}`);
         setProfile({
           youtubeChannelId: profileResponse.data.youtubeChannelId || '',
           youtubeChannelName: profileResponse.data.youtubeChannelName || '',
@@ -51,7 +51,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
         if (isRegistered) {
           const [campaignInfo, dbInfo] = await Promise.all([
             web3Service.getCampaignInfo(campaignId),
-            axios.get(`http://localhost:3001/api/campaigns/${campaignId}`).catch(() => ({ data: null }))
+            api.get(`/api/campaigns/${campaignId}`).catch(() => ({ data: null }))
           ]);
 
           return {
@@ -71,7 +71,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
         try {
           const submissionsPromises = registeredCampaignsData.map(async (campaign) => {
             try {
-              const response = await axios.get(`http://localhost:3001/api/campaigns/${campaign.id}/submissions`);
+              const response = await api.get(`/api/campaigns/${campaign.id}/submissions`);
               return response.data.filter(submission =>
                 submission.wallet_address.toLowerCase() === walletAddress.toLowerCase()
               ).map(submission => ({
@@ -111,7 +111,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
 
     setVerifying(true);
     try {
-      const response = await axios.post('http://localhost:3001/api/influencers/verify-channel', {
+      const response = await api.post('/api/influencers/verify-channel', {
         walletAddress,
         youtubeChannelId: profile.youtubeChannelId,
         verificationCode: profile.verificationCode
@@ -131,7 +131,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:3001/api/influencers', {
+      await api.post('/api/influencers', {
         walletAddress,
         youtubeChannelId: profile.youtubeChannelId,
         youtubeChannelName: profile.youtubeChannelName,
@@ -168,7 +168,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
       const videoId = videoIdMatch[1];
 
       // Check if video belongs to user's channel
-      const response = await axios.post('http://localhost:3001/api/influencers/verify-video-ownership', {
+      const response = await api.post('/api/influencers/verify-video-ownership', {
         videoId,
         expectedChannelId: profile.youtubeChannelId,
         walletAddress
@@ -213,7 +213,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
     setSubmitting(true);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/submissions', {
+      const response = await api.post('/api/submissions', {
         campaignId: submissionForm.campaignId,
         walletAddress,
         youtubeUrl: submissionForm.youtubeUrl
