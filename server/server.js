@@ -34,7 +34,92 @@ const connectDB = async () => {
 connectDB();
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
-const CAMPAIGN_MANAGER_ADDRESS = '0xbE92c4DfE7af220f4e8Cb74F2F8E75e83FC2AEB1';
+
+// YouTube API Rate Limiting Manager
+class YouTubeAPIManager {
+  constructor() {
+    this.quotaUsed = 0;
+    this.dailyLimit = 10000; // YouTube API daily quota
+    this.requestsToday = 0;
+    this.lastResetDate = new Date().toDateString();
+    this.requestQueue = [];
+    this.isProcessing = false;
+  }
+
+  resetDailyQuota() {
+    const today = new Date().toDateString();
+    if (today !== this.lastResetDate) {
+      this.quotaUsed = 0;
+      this.requestsToday = 0;
+      this.lastResetDate = today;
+      console.log('🔄 YouTube API quota reset for new day');
+    }
+  }
+
+  async makeRequest(url, params, quotaCost = 1) {
+    this.resetDailyQuota();
+
+    if (this.quotaUsed + quotaCost > this.dailyLimit) {
+      throw new Error(`YouTube API daily quota would be exceeded. Used: ${this.quotaUsed}/${this.dailyLimit}`);
+    }
+
+    let attempt = 0;
+    const maxAttempts = 3;
+
+    while (attempt < maxAttempts) {
+      try {
+        console.log(`🌐 YouTube API Request (Attempt ${attempt + 1}/${maxAttempts}): ${url}`);
+        console.log(`📊 Quota: ${this.quotaUsed}/${this.dailyLimit} (Cost: ${quotaCost})`);
+
+        const response = await axios.get(url, { params });
+
+        this.quotaUsed += quotaCost;
+        this.requestsToday++;
+
+        console.log(`✅ YouTube API Success. New quota usage: ${this.quotaUsed}/${this.dailyLimit}`);
+        return response;
+
+      } catch (error) {
+        attempt++;
+
+        if (error.response?.status === 429) {
+          const retryAfter = error.response.headers['retry-after'] || Math.pow(2, attempt);
+          console.log(`⏳ Rate limited. Waiting ${retryAfter} seconds before retry...`);
+          await this.sleep(retryAfter * 1000);
+        } else if (error.response?.status === 403) {
+          console.error('🚫 YouTube API quota exceeded or access forbidden');
+          throw new Error('YouTube API quota exceeded or access forbidden');
+        } else if (attempt >= maxAttempts) {
+          console.error(`💥 YouTube API failed after ${maxAttempts} attempts:`, error.message);
+          throw error;
+        } else {
+          console.log(`⚠️ YouTube API error, retrying in ${Math.pow(2, attempt)} seconds...`);
+          await this.sleep(Math.pow(2, attempt) * 1000);
+        }
+      }
+    }
+
+    throw new Error(`YouTube API failed after ${maxAttempts} attempts`);
+  }
+
+  async sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  getQuotaStatus() {
+    this.resetDailyQuota();
+    return {
+      used: this.quotaUsed,
+      limit: this.dailyLimit,
+      remaining: this.dailyLimit - this.quotaUsed,
+      percentage: Math.round((this.quotaUsed / this.dailyLimit) * 100),
+      requestsToday: this.requestsToday
+    };
+  }
+}
+
+const youtubeAPI = new YouTubeAPIManager();
+const CAMPAIGN_MANAGER_ADDRESS = '0x69579be58808F847a103479Bb023E9c457127369';
 const CAMPAIGN_MANAGER_ABI = [
   {
     "inputs": [{"internalType": "uint256", "name": "campaignId", "type": "uint256"}, {"internalType": "address[3]", "name": "winners", "type": "address[3]"}, {"internalType": "uint256[3]", "name": "", "type": "uint256[3]"}],
@@ -66,7 +151,7 @@ const CAMPAIGN_MANAGER_ABI = [
   }
 ];
 
-const provider = new ethers.JsonRpcProvider('https://sepolia.base.org');
+const provider = new ethers.JsonRpcProvider('https://testnet.evm.nodes.onflow.org');
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 const contract = new ethers.Contract(CAMPAIGN_MANAGER_ADDRESS, CAMPAIGN_MANAGER_ABI, wallet);
 
@@ -86,7 +171,7 @@ async function getYouTubeVideoStats(videoId) {
     console.log(`🌐 Making request to: ${apiUrl}`);
     console.log(`📊 Request params:`, { ...params, key: '[HIDDEN]' });
 
-    const response = await axios.get(apiUrl, { params });
+    const response = await youtubeAPI.makeRequest(apiUrl, params, 1);
 
     console.log(`✅ YouTube API Response Status: ${response.status}`);
     console.log(`📈 Response data items count: ${response.data.items?.length || 0}`);
@@ -136,8 +221,46 @@ async function getYouTubeVideoStats(videoId) {
   }
 }
 
-function calculatePerformanceScore(viewCount, likeCount, commentCount) {
-  return (viewCount * 0.6) + (likeCount * 0.3) + (commentCount * 0.1);
+function calculatePerformanceScore(viewCount, likeCount, commentCount, videoDuration = 60) {
+  // Prevent gaming with logarithmic scaling and engagement ratios
+
+  // 1. View score with diminishing returns (40% weight)
+  const viewScore = Math.log10(Math.max(1, viewCount)) * 40;
+
+  // 2. Engagement ratio to prevent fake views (30% weight)
+  const totalEngagement = likeCount + commentCount;
+  const engagementRatio = Math.min(totalEngagement / Math.max(1, viewCount), 0.1); // Cap at 10%
+  const engagementScore = engagementRatio * 3000; // Scale to meaningful range
+
+  // 3. Quality metrics (30% weight)
+  const likeRatio = likeCount / Math.max(1, viewCount);
+  const commentRatio = commentCount / Math.max(1, viewCount);
+
+  // Prefer content with balanced engagement
+  const qualityScore = (
+    Math.min(likeRatio * 1000, 20) + // Cap like influence
+    Math.min(commentRatio * 5000, 10) + // Comments worth more but capped
+    Math.min(videoDuration / 10, 20) // Prefer longer content up to 200 seconds
+  );
+
+  const totalScore = viewScore + engagementScore + qualityScore;
+
+  // Add randomness to prevent exact ties and gaming
+  const randomFactor = Math.random() * 0.1;
+
+  return Math.max(0, totalScore + randomFactor);
+}
+
+function parseISODuration(duration) {
+  // Convert ISO 8601 duration (PT1M30S) to seconds
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 60; // Default 1 minute
+
+  const hours = parseInt(match[1]) || 0;
+  const minutes = parseInt(match[2]) || 0;
+  const seconds = parseInt(match[3]) || 0;
+
+  return hours * 3600 + minutes * 60 + seconds;
 }
 
 function extractVideoIdFromUrl(url) {
@@ -243,14 +366,177 @@ app.post('/api/influencers', async (req, res) => {
   }
 });
 
+// Verify YouTube Channel
+app.post('/api/influencers/verify-channel', async (req, res) => {
+  try {
+    const { walletAddress, youtubeChannelId, verificationCode } = req.body;
+
+    if (!walletAddress || !youtubeChannelId || !verificationCode) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Check if channel exists and get channel info
+    console.log(`🔍 Verifying channel ${youtubeChannelId} for wallet ${walletAddress}`);
+
+    try {
+      const channelResponse = await youtubeAPI.makeRequest('https://www.googleapis.com/youtube/v3/channels', {
+        id: youtubeChannelId,
+        key: YOUTUBE_API_KEY,
+        part: 'snippet,brandingSettings'
+      }, 1);
+
+      if (channelResponse.data.items.length === 0) {
+        return res.status(404).json({ error: 'YouTube channel not found' });
+      }
+
+      const channel = channelResponse.data.items[0];
+
+      // Check channel banner description for verification code
+      const bannerDescription = channel.brandingSettings?.channel?.description || '';
+      const channelDescription = channel.snippet?.description || '';
+
+      let verificationFound = false;
+      let verificationMethod = '';
+
+      // Check channel description
+      if (channelDescription.includes(verificationCode)) {
+        verificationFound = true;
+        verificationMethod = 'channel_description';
+        console.log(`✅ Verification code found in channel description`);
+      }
+
+      // If not found in description, check recent videos
+      if (!verificationFound) {
+        try {
+          const videosResponse = await youtubeAPI.makeRequest('https://www.googleapis.com/youtube/v3/search', {
+            channelId: youtubeChannelId,
+            key: YOUTUBE_API_KEY,
+            part: 'snippet',
+            order: 'date',
+            maxResults: 5,
+            type: 'video'
+          }, 100); // Search costs 100 quota units
+
+          for (const video of videosResponse.data.items) {
+            const videoId = video.id.videoId;
+
+            // Get video details
+            const videoDetailsResponse = await youtubeAPI.makeRequest('https://www.googleapis.com/youtube/v3/videos', {
+              id: videoId,
+              key: YOUTUBE_API_KEY,
+              part: 'snippet'
+            }, 1);
+
+            if (videoDetailsResponse.data.items.length > 0) {
+              const videoDetails = videoDetailsResponse.data.items[0];
+              const videoDescription = videoDetails.snippet.description || '';
+              const videoTitle = videoDetails.snippet.title || '';
+
+              if (videoDescription.includes(verificationCode)) {
+                verificationFound = true;
+                verificationMethod = 'video_description';
+                console.log(`✅ Verification code found in video description: ${videoTitle}`);
+                break;
+              }
+
+              if (videoTitle.includes(verificationCode)) {
+                verificationFound = true;
+                verificationMethod = 'video_title';
+                console.log(`✅ Verification code found in video title: ${videoTitle}`);
+                break;
+              }
+            }
+          }
+        } catch (videoError) {
+          console.log('Could not check videos for verification code:', videoError.message);
+        }
+      }
+
+      if (!verificationFound) {
+        return res.status(400).json({
+          error: 'Verification code not found in channel description or recent videos. Please add the code and try again.'
+        });
+      }
+
+      // Update influencer with verification
+      const influencer = await Influencer.findOneAndUpdate(
+        { walletAddress: walletAddress.toLowerCase() },
+        {
+          isChannelVerified: true,
+          verificationMethod,
+          verificationCode,
+          verificationDate: new Date()
+        },
+        { new: true }
+      );
+
+      if (!influencer) {
+        return res.status(404).json({ error: 'Influencer profile not found' });
+      }
+
+      console.log(`✅ Channel verification completed for ${walletAddress} using ${verificationMethod}`);
+      res.json({
+        success: true,
+        verificationMethod,
+        message: 'Channel verified successfully!'
+      });
+
+    } catch (youtubeError) {
+      console.error('YouTube API error during verification:', youtubeError.message);
+      return res.status(400).json({ error: 'Failed to verify channel with YouTube API' });
+    }
+
+  } catch (error) {
+    console.error('Channel verification error:', error);
+    res.status(500).json({ error: 'Internal server error during verification' });
+  }
+});
+
 // Submit Video
 app.post('/api/submissions', async (req, res) => {
   try {
     const { campaignId, walletAddress, youtubeUrl } = req.body;
 
+    // Check if influencer has verified channel
+    const influencer = await Influencer.findOne({ walletAddress: walletAddress.toLowerCase() });
+    if (!influencer) {
+      return res.status(400).json({ error: 'Influencer profile not found. Please complete your profile first.' });
+    }
+
+    if (!influencer.isChannelVerified) {
+      return res.status(400).json({ error: 'YouTube channel must be verified before submitting videos. Please verify your channel in your profile.' });
+    }
+
     const videoId = extractVideoIdFromUrl(youtubeUrl);
     if (!videoId) {
       return res.status(400).json({ error: 'Invalid YouTube URL' });
+    }
+
+    // Verify that the video belongs to the influencer's verified channel
+    try {
+      const videoDetailsResponse = await youtubeAPI.makeRequest('https://www.googleapis.com/youtube/v3/videos', {
+        id: videoId,
+        key: YOUTUBE_API_KEY,
+        part: 'snippet'
+      }, 1);
+
+      if (videoDetailsResponse.data.items.length === 0) {
+        return res.status(404).json({ error: 'Video not found on YouTube' });
+      }
+
+      const video = videoDetailsResponse.data.items[0];
+      const videoChannelId = video.snippet.channelId;
+
+      if (videoChannelId !== influencer.youtubeChannelId) {
+        return res.status(400).json({
+          error: `Video must be uploaded to your verified channel. This video belongs to a different channel.`
+        });
+      }
+
+      console.log(`✅ Video channel verification passed for ${videoId} - belongs to ${influencer.youtubeChannelName}`);
+    } catch (channelCheckError) {
+      console.error('Error verifying video channel:', channelCheckError.message);
+      return res.status(400).json({ error: 'Failed to verify video channel ownership' });
     }
 
     console.log(`📹 Extracting video ID from ${youtubeUrl}: ${videoId}`);
@@ -280,16 +566,16 @@ app.post('/api/submissions', async (req, res) => {
       // Continue with default values
     }
 
+    // Extract duration in seconds from ISO 8601 format (PT1M30S -> 90)
+    const durationSeconds = videoStats.duration ?
+      parseISODuration(videoStats.duration) : 60;
+
     const performanceScore = calculatePerformanceScore(
       videoStats.viewCount,
       videoStats.likeCount,
-      videoStats.commentCount
+      videoStats.commentCount,
+      durationSeconds
     );
-
-    const influencer = await Influencer.findOne({ walletAddress: walletAddress.toLowerCase() });
-    if (!influencer) {
-      return res.status(404).json({ error: 'Influencer not found. Please register first.' });
-    }
 
     const submission = new Submission({
       campaignId,
@@ -380,10 +666,14 @@ cron.schedule('0 */2 * * *', async () => {
       try {
         console.log(`🔄 Updating analytics for video: ${videoId}`);
         const videoStats = await getYouTubeVideoStats(videoId);
+        const durationSeconds = videoStats.duration ?
+          parseISODuration(videoStats.duration) : 60;
+
         const performanceScore = calculatePerformanceScore(
           videoStats.viewCount,
           videoStats.likeCount,
-          videoStats.commentCount
+          videoStats.commentCount,
+          durationSeconds
         );
 
         const updateResult = await Submission.updateMany(
@@ -437,13 +727,24 @@ cron.schedule('0 */6 * * *', async () => {
               topPerformers[2].influencerId.walletAddress
             ];
 
+            // Calculate proper reward distribution (50%, 30%, 20%)
+            const totalReward = campaignInfo[1]; // Total reward in wei
+            const rewards = [
+              (totalReward * BigInt(50)) / BigInt(100), // 50% for 1st place
+              (totalReward * BigInt(30)) / BigInt(100), // 30% for 2nd place
+              (totalReward * BigInt(20)) / BigInt(100)  // 20% for 3rd place
+            ];
+
             try {
-              const tx = await contract.completeCampaign(campaignId, winners, [0, 0, 0]);
+              const tx = await contract.completeCampaign(campaignId, winners, rewards);
               await tx.wait();
               console.log(`Campaign ${campaignId} completed with winners:`, winners);
+              console.log(`Rewards distributed: 1st: ${ethers.formatEther(rewards[0])} FLOW, 2nd: ${ethers.formatEther(rewards[1])} FLOW, 3rd: ${ethers.formatEther(rewards[2])} FLOW`);
             } catch (error) {
               console.error(`Error completing campaign ${campaignId}:`, error);
             }
+          } else {
+            console.log(`Campaign ${campaignId} has insufficient participants (${topPerformers.length}/3 required)`);
           }
         }
       } catch (error) {
@@ -463,11 +764,25 @@ app.use((error, req, res, next) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  const quotaStatus = youtubeAPI.getQuotaStatus();
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    youtubeAPI: {
+      quotaUsed: quotaStatus.used,
+      quotaLimit: quotaStatus.limit,
+      quotaRemaining: quotaStatus.remaining,
+      quotaPercentage: quotaStatus.percentage,
+      requestsToday: quotaStatus.requestsToday
+    }
   });
+});
+
+// YouTube API quota status endpoint
+app.get('/api/youtube-quota', (req, res) => {
+  const quotaStatus = youtubeAPI.getQuotaStatus();
+  res.json(quotaStatus);
 });
 
 app.listen(PORT, () => {

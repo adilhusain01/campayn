@@ -23,6 +23,23 @@ const influencerSchema = new mongoose.Schema({
     required: false,
     lowercase: true,
     trim: true
+  },
+  isChannelVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationMethod: {
+    type: String,
+    enum: ['video_description', 'channel_banner', 'video_title'],
+    required: false
+  },
+  verificationCode: {
+    type: String,
+    required: false
+  },
+  verificationDate: {
+    type: Date,
+    required: false
   }
 }, {
   timestamps: true

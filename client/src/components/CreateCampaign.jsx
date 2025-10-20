@@ -114,122 +114,181 @@ const CreateCampaign = ({ walletAddress }) => {
   };
 
   return (
-    <div className="create-campaign">
-      <h2>Create New Campaign</h2>
+    <div className="max-w-4xl">
+      <div className="text-center mb-10">
+        <h2 className="text-3xl font-semibold text-gray-800 mb-3">Create New Campaign</h2>
+        <p className="text-gray-600">Launch your campaign in just a few simple steps</p>
+      </div>
 
       {success && (
-        <div className="success-message">
+        <div className="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6">
           {success}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="campaign-form">
-        <div className="form-group">
-          <label htmlFor="title">Campaign Title *</label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            value={formData.title}
-            onChange={handleInputChange}
-            required
-            placeholder="e.g., iPhone 17 Pro Review Campaign"
-          />
+      <div className="space-y-8">
+        {/* Step 1: Basic Information */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+          <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+            <span className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">1</span>
+            Campaign Details
+          </h3>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="title" className="block mb-2 font-semibold text-gray-800">Campaign Title</label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                required
+                placeholder="e.g., iPhone 17 Pro Review Campaign"
+                className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-blue-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="description" className="block mb-2 font-semibold text-gray-800">Description</label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                required
+                rows="3"
+                placeholder="Describe your campaign objectives and brand message..."
+                className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-blue-400 focus:shadow-lg bg-white/80 backdrop-blur-sm resize-none"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="requirements" className="block mb-2 font-semibold text-gray-800">Requirements</label>
+              <textarea
+                id="requirements"
+                name="requirements"
+                value={formData.requirements}
+                onChange={handleInputChange}
+                required
+                rows="3"
+                placeholder="Specific requirements for influencers (e.g., minimum subscribers, content guidelines, hashtags to use...)"
+                className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-blue-400 focus:shadow-lg bg-white/80 backdrop-blur-sm resize-none"
+              />
+            </div>
+          </form>
         </div>
 
-        <div className="form-group">
-          <label htmlFor="description">Description *</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            required
-            rows="4"
-            placeholder="Describe your campaign objectives and brand message..."
-          />
-        </div>
+        {/* Step 2: Timing */}
+        <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-xl border border-emerald-200">
+          <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+            <span className="bg-emerald-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">2</span>
+            Campaign Timeline
+          </h3>
+          <div className="space-y-6">
 
-        <div className="form-group">
-          <label htmlFor="requirements">Requirements *</label>
-          <textarea
-            id="requirements"
-            name="requirements"
-            value={formData.requirements}
-            onChange={handleInputChange}
-            required
-            rows="4"
-            placeholder="Specific requirements for influencers (e.g., minimum subscribers, content guidelines, hashtags to use...)"
-          />
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="registrationEnd" className="block mb-2 font-semibold text-gray-800">Registration Deadline</label>
+                <DatePicker
+                  id="registrationEnd"
+                  selected={registrationEndDate}
+                  onChange={(date) => setRegistrationEndDate(date)}
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="MMMM d, yyyy h:mm aa"
+                  minDate={new Date(Date.now() + 60 * 60 * 1000)}
+                  placeholderText="Select registration deadline"
+                  required
+                  className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-emerald-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
+                />
+                <div className="mt-2 text-emerald-600 text-sm font-medium">⏰ At least 1 hour from now</div>
+              </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="registrationEnd">Registration End Date & Time *</label>
-            <DatePicker
-              id="registrationEnd"
-              selected={registrationEndDate}
-              onChange={(date) => setRegistrationEndDate(date)}
-              showTimeSelect
-              timeFormat="HH:mm"
-              timeIntervals={15}
-              timeCaption="Time"
-              dateFormat="MMMM d, yyyy h:mm aa"
-              minDate={new Date(Date.now() + 60 * 60 * 1000)} // Minimum 1 hour from now
-              placeholderText="Select registration end date and time"
-              required
-            />
-            <small>Registration period must be at least 1 hour from now</small>
+              <div>
+                <label htmlFor="campaignEnd" className="block mb-2 font-semibold text-gray-800">Campaign End Date</label>
+                <DatePicker
+                  id="campaignEnd"
+                  selected={campaignEndDate}
+                  onChange={(date) => setCampaignEndDate(date)}
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="MMMM d, yyyy h:mm aa"
+                  minDate={new Date(registrationEndDate.getTime() + 60 * 60 * 1000)}
+                  placeholderText="Select campaign end date"
+                  required
+                  className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-emerald-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
+                />
+                <div className="mt-2 text-emerald-600 text-sm font-medium">🏁 At least 1 hour after registration</div>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div className="form-group">
-            <label htmlFor="campaignEnd">Campaign End Date & Time *</label>
-            <DatePicker
-              id="campaignEnd"
-              selected={campaignEndDate}
-              onChange={(date) => setCampaignEndDate(date)}
-              showTimeSelect
-              timeFormat="HH:mm"
-              timeIntervals={15}
-              timeCaption="Time"
-              dateFormat="MMMM d, yyyy h:mm aa"
-              minDate={new Date(registrationEndDate.getTime() + 60 * 60 * 1000)} // Minimum 1 hour after registration
-              placeholderText="Select campaign end date and time"
-              required
-            />
-            <small>Campaign must end at least 1 hour after registration period</small>
+        {/* Step 3: Rewards */}
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-200">
+          <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+            <span className="bg-amber-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">3</span>
+            Rewards & Launch
+          </h3>
+          <div className="space-y-6">
+
+            <div>
+              <label htmlFor="rewardAmount" className="block mb-2 font-semibold text-gray-800">Total Reward (FLOW)</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  id="rewardAmount"
+                  name="rewardAmount"
+                  value={formData.rewardAmount}
+                  onChange={handleInputChange}
+                  min="0.0001"
+                  step="0.0001"
+                  required
+                  placeholder="0.1"
+                  className="w-full p-4 pl-12 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-amber-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
+                />
+                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">Ξ</span>
+              </div>
+              <div className="mt-3 p-3 bg-white/60 rounded-lg">
+                <div className="text-sm text-gray-600 mb-2 font-medium">💰 Reward Distribution:</div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-yellow-600">🥇 1st Place: 50%</span>
+                  <span className="text-gray-500">🥈 2nd Place: 30%</span>
+                  <span className="text-orange-600">🥉 3rd Place: 20%</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-none py-4 px-8 rounded-xl font-semibold text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Creating Campaign...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center">
+                    🚀 Launch Campaign ({formData.rewardAmount} FLOW)
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="form-group">
-          <label htmlFor="rewardAmount">Total Reward (ETH) *</label>
-          <input
-            type="number"
-            id="rewardAmount"
-            name="rewardAmount"
-            value={formData.rewardAmount}
-            onChange={handleInputChange}
-            min="0.0001"
-            step="0.0001"
-            required
-            placeholder="0.1"
-          />
-          <small>This amount will be distributed as: 50% to 1st place, 30% to 2nd place, 20% to 3rd place</small>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="submit-btn"
-        >
-          {loading ? 'Creating Campaign...' : `Create Campaign (${formData.rewardAmount} ETH)`}
-        </button>
-      </form>
-
-      <div className="campaign-info">
-        <h3>How it works:</h3>
-        <ol>
-          <li>You create a campaign and deposit ETH for rewards</li>
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-xl border border-blue-200 mt-8">
+        <h3 className="text-gray-800 text-xl font-semibold mt-0 mb-4">How it works:</h3>
+        <ol className="text-gray-600 leading-relaxed list-decimal list-inside space-y-2">
+          <li>You create a campaign and deposit FLOW for rewards</li>
           <li>Influencers register during the registration period</li>
           <li>They create YouTube videos following your requirements</li>
           <li>After the campaign ends, top 3 performers automatically receive rewards</li>

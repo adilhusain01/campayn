@@ -1,25 +1,25 @@
 import { ethers } from 'ethers';
 import { CAMPAIGN_MANAGER_ADDRESS, CAMPAIGN_MANAGER_ABI } from './contract.js';
 
-export const BASE_SEPOLIA_CHAIN = {
-  id: 84532,
-  name: 'Base Sepolia',
-  network: 'base-sepolia',
+export const FLOW_EVM_TESTNET = {
+  id: 545,
+  name: 'Flow EVM Testnet',
+  network: 'flow-evm-testnet',
   nativeCurrency: {
     decimals: 18,
-    name: 'Ethereum',
-    symbol: 'ETH',
+    name: 'Flow',
+    symbol: 'FLOW',
   },
   rpcUrls: {
     default: {
-      http: ['https://sepolia.base.org'],
+      http: ['https://testnet.evm.nodes.onflow.org'],
     },
     public: {
-      http: ['https://sepolia.base.org'],
+      http: ['https://testnet.evm.nodes.onflow.org'],
     },
   },
   blockExplorers: {
-    default: { name: 'BaseScan', url: 'https://sepolia.basescan.org' },
+    default: { name: 'Flow EVM Explorer', url: 'https://evm-testnet.flowscan.io' },
   },
 };
 
@@ -30,58 +30,62 @@ export class Web3Service {
     this.contract = null;
   }
 
-  async connectWallet() {
+  async connectWallet(signer = null) {
     try {
-      if (typeof window.ethereum !== 'undefined') {
+      if (signer) {
+        this.signer = signer;
+        this.provider = signer.provider;
+      } else if (typeof window.ethereum !== 'undefined') {
         await window.ethereum.request({ method: 'eth_requestAccounts' });
-
         this.provider = new ethers.BrowserProvider(window.ethereum);
         this.signer = await this.provider.getSigner();
-
-        await this.switchToBaseSepolia();
-
-        this.contract = new ethers.Contract(
-          CAMPAIGN_MANAGER_ADDRESS,
-          CAMPAIGN_MANAGER_ABI,
-          this.signer
-        );
-
-        return await this.signer.getAddress();
       } else {
-        throw new Error('MetaMask not found');
+        throw new Error('No wallet found');
       }
+
+      await this.switchToFlowEVMTestnet();
+
+      this.contract = new ethers.Contract(
+        CAMPAIGN_MANAGER_ADDRESS,
+        CAMPAIGN_MANAGER_ABI,
+        this.signer
+      );
+
+      return await this.signer.getAddress();
     } catch (error) {
       console.error('Error connecting wallet:', error);
       throw error;
     }
   }
 
-  async switchToBaseSepolia() {
+  async switchToFlowEVMTestnet() {
     try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${BASE_SEPOLIA_CHAIN.id.toString(16)}` }],
-      });
+      if (window.ethereum) {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: `0x${FLOW_EVM_TESTNET.id.toString(16)}` }],
+        });
+      }
     } catch (switchError) {
-      if (switchError.code === 4902) {
+      if (switchError.code === 4902 && window.ethereum) {
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
             params: [
               {
-                chainId: `0x${BASE_SEPOLIA_CHAIN.id.toString(16)}`,
-                chainName: BASE_SEPOLIA_CHAIN.name,
-                nativeCurrency: BASE_SEPOLIA_CHAIN.nativeCurrency,
-                rpcUrls: [BASE_SEPOLIA_CHAIN.rpcUrls.default.http[0]],
-                blockExplorerUrls: [BASE_SEPOLIA_CHAIN.blockExplorers.default.url],
+                chainId: `0x${FLOW_EVM_TESTNET.id.toString(16)}`,
+                chainName: FLOW_EVM_TESTNET.name,
+                nativeCurrency: FLOW_EVM_TESTNET.nativeCurrency,
+                rpcUrls: [FLOW_EVM_TESTNET.rpcUrls.default.http[0]],
+                blockExplorerUrls: [FLOW_EVM_TESTNET.blockExplorers.default.url],
               },
             ],
           });
         } catch (addError) {
-          throw new Error('Failed to add Base Sepolia network');
+          throw new Error('Failed to add Flow EVM Testnet network');
         }
-      } else {
-        throw new Error('Failed to switch to Base Sepolia network');
+      } else if (switchError.code !== 4902) {
+        throw new Error('Failed to switch to Flow EVM Testnet network');
       }
     }
   }
