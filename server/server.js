@@ -492,6 +492,80 @@ app.post('/api/influencers/verify-channel', async (req, res) => {
   }
 });
 
+// Verify Video Ownership
+app.post('/api/influencers/verify-video-ownership', async (req, res) => {
+  try {
+    const { videoId, expectedChannelId, walletAddress } = req.body;
+
+    if (!videoId || !expectedChannelId || !walletAddress) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    console.log(`🔍 Verifying video ${videoId} belongs to channel ${expectedChannelId}`);
+
+    try {
+      // Get video details from YouTube API
+      const videoResponse = await youtubeAPI.makeRequest('https://www.googleapis.com/youtube/v3/videos', {
+        id: videoId,
+        key: YOUTUBE_API_KEY,
+        part: 'snippet'
+      }, 1);
+
+      if (videoResponse.data.items.length === 0) {
+        return res.status(404).json({
+          error: 'Video not found',
+          isOwner: false
+        });
+      }
+
+      const video = videoResponse.data.items[0];
+      const actualChannelId = video.snippet.channelId;
+      const actualChannelTitle = video.snippet.channelTitle;
+
+      console.log(`📹 Video channel: ${actualChannelId} (${actualChannelTitle})`);
+      console.log(`👤 Expected channel: ${expectedChannelId}`);
+
+      const isOwner = actualChannelId === expectedChannelId;
+
+      if (isOwner) {
+        console.log(`✅ Video ownership verified!`);
+      } else {
+        console.log(`❌ Video ownership mismatch!`);
+      }
+
+      res.json({
+        isOwner,
+        actualChannelId,
+        actualChannelTitle,
+        videoTitle: video.snippet.title,
+        videoId
+      });
+
+    } catch (youtubeError) {
+      console.error('YouTube API error during video verification:', youtubeError.message);
+
+      if (youtubeError.response?.status === 403) {
+        return res.status(403).json({
+          error: 'Video access restricted or private',
+          isOwner: false
+        });
+      }
+
+      return res.status(400).json({
+        error: 'Failed to verify video with YouTube API',
+        isOwner: false
+      });
+    }
+
+  } catch (error) {
+    console.error('Video verification error:', error);
+    res.status(500).json({
+      error: 'Internal server error during video verification',
+      isOwner: false
+    });
+  }
+});
+
 // Submit Video
 app.post('/api/submissions', async (req, res) => {
   try {
@@ -540,6 +614,23 @@ app.post('/api/submissions', async (req, res) => {
     }
 
     console.log(`📹 Extracting video ID from ${youtubeUrl}: ${videoId}`);
+
+    // Check for duplicate submission (one submission per campaign per influencer)
+    const existingSubmission = await Submission.findOne({
+      campaignId: campaignId,
+      influencerId: influencer._id
+    });
+
+    if (existingSubmission) {
+      return res.status(400).json({
+        error: 'You have already submitted a video for this campaign. Only one submission per campaign is allowed.',
+        existingSubmission: {
+          youtubeUrl: existingSubmission.youtubeUrl,
+          submittedAt: existingSubmission.createdAt,
+          performanceScore: existingSubmission.performanceScore
+        }
+      });
+    }
 
     let videoStats = {
       viewCount: 0,

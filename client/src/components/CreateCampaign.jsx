@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { web3Service } from '../utils/web3.js';
 import axios from 'axios';
 import DatePicker from 'react-datepicker';
+import { toast } from 'sonner';
 import "react-datepicker/dist/react-datepicker.css";
 
 const CreateCampaign = ({ walletAddress }) => {
@@ -21,6 +22,16 @@ const CreateCampaign = ({ walletAddress }) => {
   );
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    // Create portal container if it doesn't exist
+    if (!document.getElementById('react-datepicker-portal')) {
+      const portalDiv = document.createElement('div');
+      portalDiv.id = 'react-datepicker-portal';
+      portalDiv.style.zIndex = '9999';
+      document.body.appendChild(portalDiv);
+    }
+  }, []);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -66,7 +77,10 @@ const CreateCampaign = ({ walletAddress }) => {
     // Validate dates first
     const dateErrors = validateDates();
     if (dateErrors.length > 0) {
-      alert('Date validation errors:\n' + dateErrors.join('\n'));
+      toast.error('Invalid Dates', {
+        description: dateErrors.join('. '),
+        duration: 6000,
+      });
       setLoading(false);
       return;
     }
@@ -94,6 +108,12 @@ const CreateCampaign = ({ walletAddress }) => {
       });
 
       setSuccess(`Campaign created successfully! Campaign ID: ${result.campaignId}`);
+
+      toast.success('Campaign Created!', {
+        description: `Your campaign "${formData.title}" has been launched successfully with ${formData.rewardAmount} FLOW in rewards.`,
+        duration: 6000,
+      });
+
       setFormData({
         title: '',
         description: '',
@@ -107,7 +127,29 @@ const CreateCampaign = ({ walletAddress }) => {
 
     } catch (error) {
       console.error('Error creating campaign:', error);
-      alert('Failed to create campaign. Please try again.');
+
+      // Check for specific error types
+      if (error.message && error.message.includes('insufficient funds')) {
+        toast.error('Insufficient Funds', {
+          description: `You need ${formData.rewardAmount} FLOW to create this campaign. Please add more FLOW to your wallet.`,
+          duration: 6000,
+        });
+      } else if (error.message && error.message.includes('user rejected')) {
+        toast.error('Transaction Cancelled', {
+          description: 'You cancelled the transaction. No funds were transferred.',
+          duration: 4000,
+        });
+      } else if (error.message && error.message.includes('network')) {
+        toast.error('Network Error', {
+          description: 'Network connection issue. Please check your internet connection and try again.',
+          duration: 5000,
+        });
+      } else {
+        toast.error('Campaign Creation Failed', {
+          description: 'Something went wrong while creating your campaign. Please try again.',
+          duration: 5000,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -116,26 +158,46 @@ const CreateCampaign = ({ walletAddress }) => {
   return (
     <div className="max-w-4xl">
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-semibold text-gray-800 mb-3">Create New Campaign</h2>
-        <p className="text-gray-600">Launch your campaign in just a few simple steps</p>
+        <h2 className="text-4xl font-black mb-6 pixel-text-shadow" style={{
+          fontFamily: "'Orbitron', monospace",
+          textTransform: 'uppercase',
+          letterSpacing: '2px'
+        }}>★ CREATE NEW CAMPAIGN</h2>
+        <p className="text-black font-bold text-lg" style={{
+          fontFamily: "'Orbitron', monospace",
+          textTransform: 'uppercase'
+        }}>LAUNCH YOUR PIXEL CAMPAIGN IN SIMPLE STEPS</p>
       </div>
 
       {success && (
-        <div className="bg-green-50 text-green-700 p-4 rounded-lg border border-green-200 mb-6">
-          {success}
+        <div className="bg-white text-black p-4 mb-6 pixel-border pixel-shadow" style={{
+          fontFamily: "'Orbitron', monospace",
+          fontWeight: 'bold'
+        }}>
+          ► {success}
         </div>
       )}
 
       <div className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-8">
         {/* Step 1: Basic Information */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
-          <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-            <span className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">1</span>
-            Campaign Details
+        <div className="bg-white p-6 pixel-border pixel-shadow" style={{
+          clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
+        }}>
+          <h3 className="text-xl font-black text-black mb-6 flex items-center" style={{
+            fontFamily: "'Orbitron', monospace",
+            textTransform: 'uppercase'
+          }}>
+            <span className="bg-black text-white w-8 h-8 flex items-center justify-center text-sm font-black mr-3 pixel-border" style={{
+              fontFamily: "'Orbitron', monospace"
+            }}>1</span>
+            ▲ CAMPAIGN DETAILS
           </h3>
-          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="title" className="block mb-2 font-semibold text-gray-800">Campaign Title</label>
+              <label htmlFor="title" className="block mb-2 font-black text-black" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>► CAMPAIGN TITLE</label>
               <input
                 type="text"
                 id="title"
@@ -143,13 +205,18 @@ const CreateCampaign = ({ walletAddress }) => {
                 value={formData.title}
                 onChange={handleInputChange}
                 required
-                placeholder="e.g., iPhone 17 Pro Review Campaign"
-                className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-blue-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
+                placeholder="IPHONE 17 PRO REVIEW CAMPAIGN"
+                className="w-full p-4 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold" style={{
+                  fontFamily: "'Orbitron', monospace"
+                }}
               />
             </div>
 
             <div>
-              <label htmlFor="description" className="block mb-2 font-semibold text-gray-800">Description</label>
+              <label htmlFor="description" className="block mb-2 font-black text-black" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>► DESCRIPTION</label>
               <textarea
                 id="description"
                 name="description"
@@ -157,13 +224,18 @@ const CreateCampaign = ({ walletAddress }) => {
                 onChange={handleInputChange}
                 required
                 rows="3"
-                placeholder="Describe your campaign objectives and brand message..."
-                className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-blue-400 focus:shadow-lg bg-white/80 backdrop-blur-sm resize-none"
+                placeholder="DESCRIBE YOUR CAMPAIGN OBJECTIVES AND BRAND MESSAGE..."
+                className="w-full p-4 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold resize-none" style={{
+                  fontFamily: "'Orbitron', monospace"
+                }}
               />
             </div>
 
             <div>
-              <label htmlFor="requirements" className="block mb-2 font-semibold text-gray-800">Requirements</label>
+              <label htmlFor="requirements" className="block mb-2 font-black text-black" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>► REQUIREMENTS</label>
               <textarea
                 id="requirements"
                 name="requirements"
@@ -171,128 +243,414 @@ const CreateCampaign = ({ walletAddress }) => {
                 onChange={handleInputChange}
                 required
                 rows="3"
-                placeholder="Specific requirements for influencers (e.g., minimum subscribers, content guidelines, hashtags to use...)"
-                className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-blue-400 focus:shadow-lg bg-white/80 backdrop-blur-sm resize-none"
+                placeholder="SPECIFIC REQUIREMENTS FOR INFLUENCERS (E.G., MINIMUM SUBSCRIBERS, CONTENT GUIDELINES, HASHTAGS...)"
+                className="w-full p-4 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold resize-none" style={{
+                  fontFamily: "'Orbitron', monospace"
+                }}
               />
             </div>
-          </form>
-        </div>
+            </div>
 
-        {/* Step 2: Timing */}
-        <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-xl border border-emerald-200">
-          <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-            <span className="bg-emerald-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">2</span>
-            Campaign Timeline
-          </h3>
-          <div className="space-y-6">
+          {/* Step 2: Timing */}
+          <div className="bg-white p-6 pixel-border pixel-shadow" style={{
+            clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
+          }}>
+            <h3 className="text-xl font-black text-black mb-6 flex items-center" style={{
+              fontFamily: "'Orbitron', monospace",
+              textTransform: 'uppercase'
+            }}>
+              <span className="bg-black text-white w-8 h-8 flex items-center justify-center text-sm font-black mr-3 pixel-border" style={{
+                fontFamily: "'Orbitron', monospace"
+              }}>2</span>
+              ⏰ CAMPAIGN TIMELINE
+            </h3>
+            <div className="space-y-6">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="registrationEnd" className="block mb-2 font-semibold text-gray-800">Registration Deadline</label>
-                <DatePicker
-                  id="registrationEnd"
-                  selected={registrationEndDate}
-                  onChange={(date) => setRegistrationEndDate(date)}
-                  showTimeSelect
-                  timeFormat="HH:mm"
-                  timeIntervals={15}
-                  timeCaption="Time"
-                  dateFormat="MMMM d, yyyy h:mm aa"
-                  minDate={new Date(Date.now() + 60 * 60 * 1000)}
-                  placeholderText="Select registration deadline"
-                  required
-                  className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-emerald-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
-                />
-                <div className="mt-2 text-emerald-600 text-sm font-medium">⏰ At least 1 hour from now</div>
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="registrationEnd" className="block mb-2 font-black text-black" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>► REGISTRATION DEADLINE</label>
+                  <DatePicker
+                    id="registrationEnd"
+                    selected={registrationEndDate}
+                    onChange={(date) => setRegistrationEndDate(date)}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    timeCaption="Time"
+                    dateFormat="MMMM d, yyyy h:mm aa"
+                    minDate={new Date(Date.now() + 60 * 60 * 1000)}
+                    placeholderText="SELECT REGISTRATION DEADLINE"
+                    required
+                    className="w-full p-4 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}
+                    portalId="react-datepicker-portal"
+                  />
+                  <div className="mt-2 text-black text-sm font-black" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>⏰ AT LEAST 1 HOUR FROM NOW</div>
+                </div>
 
-              <div>
-                <label htmlFor="campaignEnd" className="block mb-2 font-semibold text-gray-800">Campaign End Date</label>
-                <DatePicker
-                  id="campaignEnd"
-                  selected={campaignEndDate}
-                  onChange={(date) => setCampaignEndDate(date)}
-                  showTimeSelect
-                  timeFormat="HH:mm"
-                  timeIntervals={15}
-                  timeCaption="Time"
-                  dateFormat="MMMM d, yyyy h:mm aa"
-                  minDate={new Date(registrationEndDate.getTime() + 60 * 60 * 1000)}
-                  placeholderText="Select campaign end date"
-                  required
-                  className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-emerald-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
-                />
-                <div className="mt-2 text-emerald-600 text-sm font-medium">🏁 At least 1 hour after registration</div>
+                <div>
+                  <label htmlFor="campaignEnd" className="block mb-2 font-black text-black" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>► CAMPAIGN END DATE</label>
+                  <DatePicker
+                    id="campaignEnd"
+                    selected={campaignEndDate}
+                    onChange={(date) => setCampaignEndDate(date)}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    timeCaption="Time"
+                    dateFormat="MMMM d, yyyy h:mm aa"
+                    minDate={new Date(registrationEndDate.getTime() + 60 * 60 * 1000)}
+                    placeholderText="SELECT CAMPAIGN END DATE"
+                    required
+                    className="w-full p-4 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}
+                    portalId="react-datepicker-portal"
+                  />
+                  <div className="mt-2 text-black text-sm font-black" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>🏁 AT LEAST 1 HOUR AFTER REGISTRATION</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Step 3: Rewards */}
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-xl border border-amber-200">
-          <h3 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-            <span className="bg-amber-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">3</span>
-            Rewards & Launch
-          </h3>
-          <div className="space-y-6">
+          {/* Step 3: Rewards */}
+          <div className="bg-white p-6 pixel-border pixel-shadow" style={{
+            clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
+          }}>
+            <h3 className="text-xl font-black text-black mb-6 flex items-center" style={{
+              fontFamily: "'Orbitron', monospace",
+              textTransform: 'uppercase'
+            }}>
+              <span className="bg-black text-white w-8 h-8 flex items-center justify-center text-sm font-black mr-3 pixel-border" style={{
+                fontFamily: "'Orbitron', monospace"
+              }}>3</span>
+              💰 REWARDS & LAUNCH
+            </h3>
+            <div className="space-y-6">
 
-            <div>
-              <label htmlFor="rewardAmount" className="block mb-2 font-semibold text-gray-800">Total Reward (FLOW)</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  id="rewardAmount"
-                  name="rewardAmount"
-                  value={formData.rewardAmount}
-                  onChange={handleInputChange}
-                  min="0.0001"
-                  step="0.0001"
-                  required
-                  placeholder="0.1"
-                  className="w-full p-4 pl-12 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-amber-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
-                />
-                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">Ξ</span>
+              <div>
+                <label htmlFor="rewardAmount" className="block mb-2 font-black text-black" style={{
+                  fontFamily: "'Orbitron', monospace",
+                  textTransform: 'uppercase'
+                }}>► TOTAL REWARD (FLOW)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    id="rewardAmount"
+                    name="rewardAmount"
+                    value={formData.rewardAmount}
+                    onChange={handleInputChange}
+                    min="0.0001"
+                    step="0.0001"
+                    required
+                    placeholder="0.1"
+                    className="w-full p-4 pl-12 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}
+                  />
+                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-black font-black" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>▶</span>
+                </div>
+                <div className="mt-3 p-3 bg-black text-white pixel-border">
+                  <div className="text-sm text-white mb-2 font-black" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>💰 REWARD DISTRIBUTION:</div>
+                  <div className="flex justify-between text-sm font-bold" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>
+                    <span className="text-yellow-400">🥇 1ST: 50%</span>
+                    <span className="text-gray-300">🥈 2ND: 30%</span>
+                    <span className="text-orange-400">🥉 3RD: 20%</span>
+                  </div>
+                </div>
               </div>
-              <div className="mt-3 p-3 bg-white/60 rounded-lg">
-                <div className="text-sm text-gray-600 mb-2 font-medium">💰 Reward Distribution:</div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-yellow-600">🥇 1st Place: 50%</span>
-                  <span className="text-gray-500">🥈 2nd Place: 30%</span>
-                  <span className="text-orange-600">🥉 3rd Place: 20%</span>
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full pixel-button py-4 px-8 text-lg font-black pixel-shadow transition-all duration-100 disabled:opacity-60 disabled:cursor-not-allowed" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-current border-t-transparent animate-spin mr-2" style={{
+                        borderRadius: 0
+                      }}></div>
+                      CREATING CAMPAIGN...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center">
+                      🚀 LAUNCH CAMPAIGN ({formData.rewardAmount} FLOW)
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 4: Campaign Summary & Actions */}
+          <div className="bg-white p-6 pixel-border pixel-shadow" style={{
+            clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
+          }}>
+            <h3 className="text-xl font-black text-black mb-6 flex items-center" style={{
+              fontFamily: "'Orbitron', monospace",
+              textTransform: 'uppercase'
+            }}>
+              <span className="bg-black text-white w-8 h-8 flex items-center justify-center text-sm font-black mr-3 pixel-border" style={{
+                fontFamily: "'Orbitron', monospace"
+              }}>4</span>
+              📊 CAMPAIGN SUMMARY
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Campaign Overview */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-black text-black flex items-center" style={{
+                  fontFamily: "'Orbitron', monospace",
+                  textTransform: 'uppercase'
+                }}>
+                  📋 OVERVIEW
+                </h4>
+
+                <div className="space-y-3">
+                  <div className="bg-black text-white p-3 pixel-border">
+                    <div className="text-xs font-black mb-1" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>Title:</div>
+                    <div className="font-bold" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>{formData.title || 'NOT SET'}</div>
+                  </div>
+
+                  <div className="bg-black text-white p-3 pixel-border">
+                    <div className="text-xs font-black mb-1" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>Total Reward:</div>
+                    <div className="font-bold text-yellow-400" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>{formData.rewardAmount} FLOW</div>
+                  </div>
+
+                  <div className="bg-black text-white p-3 pixel-border">
+                    <div className="text-xs font-black mb-1" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>Registration Ends:</div>
+                    <div className="font-bold text-green-400 text-sm" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>
+                      {registrationEndDate.toLocaleDateString()} {registrationEndDate.toLocaleTimeString()}
+                    </div>
+                  </div>
+
+                  <div className="bg-black text-white p-3 pixel-border">
+                    <div className="text-xs font-black mb-1" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>Campaign Ends:</div>
+                    <div className="font-bold text-red-400 text-sm" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>
+                      {campaignEndDate.toLocaleDateString()} {campaignEndDate.toLocaleTimeString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions & Info */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-black text-black flex items-center" style={{
+                  fontFamily: "'Orbitron', monospace",
+                  textTransform: 'uppercase'
+                }}>
+                  ⚡ QUICK ACTIONS
+                </h4>
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData({
+                        title: '',
+                        description: '',
+                        requirements: '',
+                        rewardAmount: '0.1'
+                      });
+                      setRegistrationEndDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000));
+                      setCampaignEndDate(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000));
+                      toast.success('Form cleared! Start fresh.');
+                    }}
+                    className="w-full pixel-button py-3 px-4 text-sm font-black pixel-shadow transition-all duration-100 bg-gray-600 hover:bg-gray-700" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    🔄 CLEAR FORM
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const campaignData = {
+                        title: formData.title,
+                        description: formData.description,
+                        requirements: formData.requirements,
+                        rewardAmount: formData.rewardAmount,
+                        registrationEnd: registrationEndDate.toISOString(),
+                        campaignEnd: campaignEndDate.toISOString()
+                      };
+
+                      navigator.clipboard.writeText(JSON.stringify(campaignData, null, 2));
+                      toast.success('Campaign data copied to clipboard!');
+                    }}
+                    className="w-full pixel-button py-3 px-4 text-sm font-black pixel-shadow transition-all duration-100 bg-blue-600 hover:bg-blue-700" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    📋 COPY DATA
+                  </button>
+
+                  <div className="bg-black text-white p-3 pixel-border">
+                    <div className="text-xs font-black mb-2" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>💡 PRO TIP:</div>
+                    <div className="text-sm font-bold" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>Higher rewards attract more influencers. Consider 1+ FLOW for viral campaigns!</div>
+                  </div>
+
+                  <div className="bg-black text-white p-3 pixel-border">
+                    <div className="text-xs font-black mb-2" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>⏱️ TIMING:</div>
+                    <div className="text-sm font-bold" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>
+                      Duration: {Math.ceil((campaignEndDate - registrationEndDate) / (1000 * 60 * 60 * 24))} days
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="pt-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-none py-4 px-8 rounded-xl font-semibold text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Creating Campaign...
+            {/* Pre-launch Checklist */}
+            <div className="mt-6 bg-black text-white p-4 pixel-border">
+              <h4 className="text-sm font-black mb-3" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>✅ PRE-LAUNCH CHECKLIST:</h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className={formData.title ? 'text-green-400' : 'text-red-400'}>
+                    {formData.title ? '✓' : '✗'}
                   </span>
-                ) : (
-                  <span className="flex items-center justify-center">
-                    🚀 Launch Campaign ({formData.rewardAmount} FLOW)
+                  <span style={{ fontFamily: "'Orbitron', monospace" }}>
+                    Campaign title set
                   </span>
-                )}
-              </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={formData.description ? 'text-green-400' : 'text-red-400'}>
+                    {formData.description ? '✓' : '✗'}
+                  </span>
+                  <span style={{ fontFamily: "'Orbitron', monospace" }}>
+                    Description added
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={formData.requirements ? 'text-green-400' : 'text-red-400'}>
+                    {formData.requirements ? '✓' : '✗'}
+                  </span>
+                  <span style={{ fontFamily: "'Orbitron', monospace" }}>
+                    Requirements specified
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={parseFloat(formData.rewardAmount) >= 0.1 ? 'text-green-400' : 'text-red-400'}>
+                    {parseFloat(formData.rewardAmount) >= 0.1 ? '✓' : '✗'}
+                  </span>
+                  <span style={{ fontFamily: "'Orbitron', monospace" }}>
+                    Reward amount valid
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={registrationEndDate > new Date() ? 'text-green-400' : 'text-red-400'}>
+                    {registrationEndDate > new Date() ? '✓' : '✗'}
+                  </span>
+                  <span style={{ fontFamily: "'Orbitron', monospace" }}>
+                    Registration future date
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={campaignEndDate > registrationEndDate ? 'text-green-400' : 'text-red-400'}>
+                    {campaignEndDate > registrationEndDate ? '✓' : '✗'}
+                  </span>
+                  <span style={{ fontFamily: "'Orbitron', monospace" }}>
+                    Campaign end valid
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+          </form>
       </div>
 
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-xl border border-blue-200 mt-8">
-        <h3 className="text-gray-800 text-xl font-semibold mt-0 mb-4">How it works:</h3>
-        <ol className="text-gray-600 leading-relaxed list-decimal list-inside space-y-2">
-          <li>You create a campaign and deposit FLOW for rewards</li>
-          <li>Influencers register during the registration period</li>
-          <li>They create YouTube videos following your requirements</li>
-          <li>After the campaign ends, top 3 performers automatically receive rewards</li>
-          <li>Performance is calculated based on views (60%), likes (30%), and comments (10%)</li>
+      <div className="bg-white p-8 pixel-border pixel-shadow mt-8" style={{
+        clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
+      }}>
+        <h3 className="text-black text-xl font-black mt-0 mb-4" style={{
+          fontFamily: "'Orbitron', monospace",
+          textTransform: 'uppercase'
+        }}>◆ HOW IT WORKS:</h3>
+        <ol className="text-black leading-relaxed list-none space-y-3 font-bold" style={{
+          fontFamily: "'Orbitron', monospace"
+        }}>
+          <li className="flex items-start">
+            <span className="text-black font-black mr-3 text-lg">►</span>
+            YOU CREATE A CAMPAIGN AND DEPOSIT FLOW FOR REWARDS
+          </li>
+          <li className="flex items-start">
+            <span className="text-black font-black mr-3 text-lg">►</span>
+            INFLUENCERS REGISTER DURING THE REGISTRATION PERIOD
+          </li>
+          <li className="flex items-start">
+            <span className="text-black font-black mr-3 text-lg">►</span>
+            THEY CREATE YOUTUBE VIDEOS FOLLOWING YOUR REQUIREMENTS
+          </li>
+          <li className="flex items-start">
+            <span className="text-black font-black mr-3 text-lg">►</span>
+            AFTER THE CAMPAIGN ENDS, TOP 3 PERFORMERS AUTOMATICALLY RECEIVE REWARDS
+          </li>
+          <li className="flex items-start">
+            <span className="text-black font-black mr-3 text-lg">►</span>
+            PERFORMANCE IS CALCULATED BASED ON VIEWS (60%), LIKES (30%), AND COMMENTS (10%)
+          </li>
         </ol>
       </div>
     </div>

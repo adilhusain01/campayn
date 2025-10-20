@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { web3Service } from '../utils/web3.js';
+import { toast } from 'sonner';
 import axios from 'axios';
 
 const CampaignList = ({ walletAddress }) => {
@@ -43,11 +44,41 @@ const CampaignList = ({ walletAddress }) => {
 
     try {
       await web3Service.registerInfluencer(campaignId);
-      alert('Successfully registered for campaign!');
+      toast.success('Registration Successful!', {
+        description: 'You have successfully registered for the campaign. You can now submit videos!',
+        duration: 6000,
+      });
       loadCampaigns();
     } catch (error) {
       console.error('Error registering:', error);
-      alert('Failed to register. Please try again.');
+
+      // Check for specific error types
+      if (error.message && error.message.includes('Influencer already registered')) {
+        toast.error('Already Registered!', {
+          description: 'You are already registered for this campaign. Check your Influencer Dashboard to submit videos.',
+          duration: 6000,
+        });
+      } else if (error.message && error.message.includes('user rejected')) {
+        toast.error('Transaction Cancelled', {
+          description: 'You cancelled the registration transaction.',
+          duration: 4000,
+        });
+      } else if (error.message && error.message.includes('insufficient funds')) {
+        toast.error('Insufficient Funds', {
+          description: 'You need more FLOW to cover the transaction gas fees.',
+          duration: 5000,
+        });
+      } else if (error.message && error.message.includes('Registration period has ended')) {
+        toast.error('Registration Closed', {
+          description: 'The registration period for this campaign has ended.',
+          duration: 5000,
+        });
+      } else {
+        toast.error('Registration Failed', {
+          description: 'Failed to register for the campaign. Please try again.',
+          duration: 5000,
+        });
+      }
     } finally {
       setRegistering({ ...registering, [campaignId]: false });
     }
@@ -93,7 +124,17 @@ const CampaignList = ({ walletAddress }) => {
   };
 
   if (loading) {
-    return <div className="text-center py-12 text-gray-600 text-lg">Loading campaigns...</div>;
+    return (
+      <div className="text-center py-12 text-black text-lg font-black" style={{
+        fontFamily: "'Orbitron', monospace",
+        textTransform: 'uppercase'
+      }}>
+        <div className="w-8 h-8 border-2 border-black border-t-transparent animate-spin mx-auto mb-4" style={{
+          borderRadius: 0
+        }}></div>
+        LOADING CAMPAIGNS...
+      </div>
+    );
   }
 
   if (selectedCampaign) {
@@ -101,35 +142,60 @@ const CampaignList = ({ walletAddress }) => {
       <div className="max-w-4xl">
         <button
           onClick={() => setSelectedCampaign(null)}
-          className="bg-gray-50 text-gray-800 border border-gray-300 py-2 px-4 rounded-lg mb-8 inline-flex items-center gap-2 transition-all duration-200 hover:bg-gray-100 hover:-translate-x-0.5"
+          className="pixel-button py-3 px-6 mb-8 inline-flex items-center gap-2 font-black transition-all duration-100" style={{
+            fontFamily: "'Orbitron', monospace",
+            textTransform: 'uppercase'
+          }}
         >
-          ← Back to Campaigns
+          ◀ BACK TO CAMPAIGNS
         </button>
 
-        <h2 className="text-3xl font-semibold text-gray-800 mb-8">{selectedCampaign.title}</h2>
+        <h2 className="text-4xl font-black text-black mb-8 pixel-text-shadow" style={{
+          fontFamily: "'Orbitron', monospace",
+          textTransform: 'uppercase',
+          letterSpacing: '2px'
+        }}>{selectedCampaign.title}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl shadow-sm border border-blue-200">
-            <h3 className="text-gray-800 font-semibold text-xl mb-4 border-b border-blue-200 pb-2">Campaign Info</h3>
-            <div className="space-y-3">
-              <p className="text-gray-600"><strong className="text-gray-800">Description:</strong> {selectedCampaign.description}</p>
-              <p className="text-gray-600"><strong className="text-gray-800">Requirements:</strong> {selectedCampaign.requirements}</p>
-              <p className="text-gray-600"><strong className="text-gray-800">Total Reward:</strong> {selectedCampaign.totalReward} FLOW</p>
-              <p className="text-gray-600"><strong className="text-gray-800">Participants:</strong> {selectedCampaign.influencerCount}</p>
-              <p className="text-gray-600"><strong className="text-gray-800">Registration Ends:</strong> {formatDate(selectedCampaign.registrationEnd)}</p>
-              <p className="text-gray-600"><strong className="text-gray-800">Campaign Ends:</strong> {formatDate(selectedCampaign.campaignEnd)}</p>
+          <div className="bg-white p-6 pixel-border pixel-shadow" style={{
+            clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))'
+          }}>
+            <h3 className="text-black font-black text-xl mb-4 border-b-2 border-black pb-2" style={{
+              fontFamily: "'Orbitron', monospace",
+              textTransform: 'uppercase'
+            }}>▲ CAMPAIGN INFO</h3>
+            <div className="space-y-3 font-bold" style={{
+              fontFamily: "'Orbitron', monospace"
+            }}>
+              <p className="text-black"><span className="font-black">► DESCRIPTION:</span> {selectedCampaign.description}</p>
+              <p className="text-black"><span className="font-black">► REQUIREMENTS:</span> {selectedCampaign.requirements}</p>
+              <p className="text-black"><span className="font-black">► TOTAL REWARD:</span> {selectedCampaign.totalReward} FLOW</p>
+              <p className="text-black"><span className="font-black">► PARTICIPANTS:</span> {selectedCampaign.influencerCount}</p>
+              <p className="text-black"><span className="font-black">► REGISTRATION ENDS:</span> {formatDate(selectedCampaign.registrationEnd)}</p>
+              <p className="text-black"><span className="font-black">► CAMPAIGN ENDS:</span> {formatDate(selectedCampaign.campaignEnd)}</p>
             </div>
           </div>
 
           {selectedCampaign.leaderboard && selectedCampaign.leaderboard.length > 0 && (
-            <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-xl shadow-sm border border-emerald-200">
-              <h3 className="text-gray-800 font-semibold text-xl mb-4 border-b border-emerald-200 pb-2">Current Leaderboard</h3>
+            <div className="bg-white p-6 pixel-border pixel-shadow" style={{
+              clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))'
+            }}>
+              <h3 className="text-black font-black text-xl mb-4 border-b-2 border-black pb-2" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>🏆 CURRENT LEADERBOARD</h3>
               <div className="max-h-96 overflow-y-auto">
                 {selectedCampaign.leaderboard.slice(0, 10).map((submission, index) => (
-                  <div key={submission.id} className="grid grid-cols-[auto_1fr_auto] gap-4 items-center py-3 border-b border-gray-50 last:border-b-0">
-                    <span className="font-bold text-indigo-600 text-lg">#{index + 1}</span>
-                    <span className="text-gray-800">{submission.youtube_channel_name}</span>
-                    <span className="font-semibold text-green-600">{Math.round(submission.performanceScore || submission.performance_score || 0).toLocaleString()}</span>
+                  <div key={submission.id} className="grid grid-cols-[auto_1fr_auto] gap-4 items-center py-3 border-b-2 border-black last:border-b-0">
+                    <span className="font-black text-black text-lg" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>#{index + 1}</span>
+                    <span className="text-black font-bold" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>{submission.youtube_channel_name}</span>
+                    <span className="font-black text-black" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>{Math.round(submission.performanceScore || submission.performance_score || 0).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -139,10 +205,15 @@ const CampaignList = ({ walletAddress }) => {
 
         {selectedCampaign.submissions && selectedCampaign.submissions.length > 0 && (
           <div className="mt-8">
-            <h3 className="text-gray-800 font-semibold text-xl mb-6">Recent Submissions</h3>
+            <h3 className="text-black font-black text-xl mb-6" style={{
+              fontFamily: "'Orbitron', monospace",
+              textTransform: 'uppercase'
+            }}>◆ RECENT SUBMISSIONS</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {selectedCampaign.submissions.slice(0, 6).map((submission) => (
-                <div key={submission.id} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl overflow-hidden shadow-sm border border-purple-200 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+                <div key={submission.id} className="bg-white overflow-hidden pixel-border pixel-shadow transition-all duration-100 hover:-translate-y-1" style={{
+                  clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+                }}>
                   <a
                     href={submission.youtubeUrl || submission.youtube_url}
                     target="_blank"
@@ -158,18 +229,26 @@ const CampaignList = ({ walletAddress }) => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-600 text-sm border-2 border-dashed border-gray-300">No Video</div>
+                        <div className="w-full h-full bg-white flex items-center justify-center text-black text-sm border-2 border-black font-bold" style={{
+                          fontFamily: "'Orbitron', monospace"
+                        }}>NO VIDEO</div>
                       )}
                     </div>
                   </a>
                   <div className="p-4">
-                    <p className="font-semibold text-gray-800 mb-3">{submission.youtube_channel_name}</p>
-                    <div className="flex justify-between text-sm text-gray-600 mb-3">
-                      <span>👀 {(submission.viewCount || submission.view_count || 0).toLocaleString()}</span>
-                      <span>👍 {(submission.likeCount || submission.like_count || 0).toLocaleString()}</span>
-                      <span>💬 {(submission.commentCount || submission.comment_count || 0).toLocaleString()}</span>
+                    <p className="font-black text-black mb-3" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>{submission.youtube_channel_name}</p>
+                    <div className="flex justify-between text-sm text-black mb-3 font-bold" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>
+                      <span>► {(submission.viewCount || submission.view_count || 0).toLocaleString()}</span>
+                      <span>▲ {(submission.likeCount || submission.like_count || 0).toLocaleString()}</span>
+                      <span>◆ {(submission.commentCount || submission.comment_count || 0).toLocaleString()}</span>
                     </div>
-                    <p className="font-semibold text-indigo-600">Score: {Math.round(submission.performanceScore || submission.performance_score || 0).toLocaleString()}</p>
+                    <p className="font-black text-black" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>SCORE: {Math.round(submission.performanceScore || submission.performance_score || 0).toLocaleString()}</p>
                   </div>
                 </div>
               ))}
@@ -182,12 +261,19 @@ const CampaignList = ({ walletAddress }) => {
 
   return (
     <div>
-      <h2 className="text-3xl font-semibold text-gray-800 mb-8">Active Campaigns</h2>
+      <h2 className="text-4xl font-black text-black mb-8 pixel-text-shadow" style={{
+        fontFamily: "'Orbitron', monospace",
+        textTransform: 'uppercase',
+        letterSpacing: '2px'
+      }}>▶ ACTIVE CAMPAIGNS</h2>
 
       {campaigns.length === 0 ? (
-        <div className="text-center py-12 text-gray-600">
-          <p className="mb-2">No active campaigns found.</p>
-          <p>Check back later or create your own campaign!</p>
+        <div className="text-center py-12 text-black font-bold" style={{
+          fontFamily: "'Orbitron', monospace",
+          textTransform: 'uppercase'
+        }}>
+          <p className="mb-2">NO ACTIVE CAMPAIGNS FOUND.</p>
+          <p>CHECK BACK LATER OR CREATE YOUR OWN CAMPAIGN!</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -199,51 +285,86 @@ const CampaignList = ({ walletAddress }) => {
               'status-ended': 'bg-red-50 text-red-700'
             };
             return (
-              <div key={campaign.id} className="bg-gradient-to-br from-slate-50 to-gray-100 rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                <div className="p-6 border-b border-gray-50 flex justify-between items-start gap-4">
-                  <h3 className="text-lg font-semibold text-gray-800 leading-tight">{campaign.title || `Campaign #${campaign.id}`}</h3>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap ${statusClasses[status.class]}`}>
-                    {status.text}
+              <div key={campaign.id} className="bg-white overflow-hidden pixel-border pixel-shadow transition-all duration-100 hover:-translate-y-1" style={{
+                clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))'
+              }}>
+                <div className="p-6 border-b-2 border-black flex justify-between items-start gap-4">
+                  <h3 className="text-lg font-black text-black leading-tight" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>{campaign.title || `CAMPAIGN #${campaign.id}`}</h3>
+                  <span className="px-3 py-1 pixel-border text-sm font-black whitespace-nowrap bg-white text-black" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>
+                    {status.text.toUpperCase()}
                   </span>
                 </div>
 
                 <div className="p-6">
-                  <p className="text-gray-600 mb-4 overflow-hidden line-clamp-2">
-                    {campaign.description || 'No description available'}
+                  <p className="text-black mb-4 overflow-hidden line-clamp-2 font-bold" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>
+                    {campaign.description || 'NO DESCRIPTION AVAILABLE'}
                   </p>
 
                   <div className="grid grid-cols-2 gap-4 mb-4 text-black">
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <div className="block text-lg font-semibold text-gray-800">{campaign.totalReward} FLOW</div>
-                      <div className="text-sm text-gray-600">Total Reward</div>
+                    <div className="text-center p-3 bg-black text-white pixel-border">
+                      <div className="block text-lg font-black" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}>{campaign.totalReward} FLOW</div>
+                      <div className="text-sm font-bold" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}>TOTAL REWARD</div>
                     </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <div className="block text-lg font-semibold text-gray-800">{campaign.influencerCount}</div>
-                      <div className="text-sm text-gray-600">Participants</div>
+                    <div className="text-center p-3 bg-black text-white pixel-border">
+                      <div className="block text-lg font-black" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}>{campaign.influencerCount}</div>
+                      <div className="text-sm font-bold" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}>PARTICIPANTS</div>
                     </div>
                   </div>
 
-                  <div className="text-sm text-gray-600 mb-6">
-                    <p className="mb-1"><strong>Registration:</strong> {formatDate(campaign.registrationEnd)}</p>
-                    <p><strong>Campaign End:</strong> {formatDate(campaign.campaignEnd)}</p>
+                  <div className="text-sm text-black mb-6 font-bold" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>
+                    <p className="mb-1"><span className="font-black">► REGISTRATION:</span> {formatDate(campaign.registrationEnd)}</p>
+                    <p><span className="font-black">► CAMPAIGN END:</span> {formatDate(campaign.campaignEnd)}</p>
                   </div>
                 </div>
 
-                <div className="p-6 border-t border-gray-50 flex gap-3">
+                <div className="p-6 border-t-2 border-black flex gap-3">
                   <button
                     onClick={() => viewCampaignDetails(campaign)}
-                    className="flex-1 py-3 px-4 bg-gray-50 text-gray-800 border border-gray-300 rounded-lg font-semibold transition-colors hover:bg-gray-100"
+                    className="flex-1 py-3 px-4 bg-white text-black border-2 border-black font-black transition-all duration-100 hover:bg-black hover:text-white" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}
                   >
-                    View Details
+                    ▶ VIEW DETAILS
                   </button>
 
                   {Date.now() < campaign.registrationEnd && (
                     <button
                       onClick={() => handleRegister(campaign.id)}
                       disabled={registering[campaign.id]}
-                      className="flex-1 py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg font-semibold transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                      className="flex-1 py-3 px-4 pixel-button font-black transition-all duration-100 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" style={{
+                        fontFamily: "'Orbitron', monospace",
+                        textTransform: 'uppercase'
+                      }}
                     >
-                      {registering[campaign.id] ? 'Registering...' : 'Register'}
+                      {registering[campaign.id] ? (
+                        <span className="flex items-center justify-center">
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin mr-2" style={{
+                            borderRadius: 0
+                          }}></div>
+                          REGISTERING...
+                        </span>
+                      ) : (
+                        '★ REGISTER'
+                      )}
                     </button>
                   )}
                 </div>

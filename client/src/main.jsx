@@ -1,3 +1,4 @@
+import './polyfills.js'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { PrivyProvider } from '@privy-io/react-auth'
@@ -14,10 +15,10 @@ createRoot(document.getElementById('root')).render(
       <PrivyProvider
         appId={import.meta.env.VITE_PRIVY_APP_ID || "your-privy-app-id"}
         config={{
-          ...privyConfig,
-          supportedChains: [flowEvmTestnet],
-          defaultChain: flowEvmTestnet
-        }}
+            ...privyConfig,
+            supportedChains: [flowEvmTestnet],
+            defaultChain: flowEvmTestnet
+          }}
       >
         <App />
       </PrivyProvider>

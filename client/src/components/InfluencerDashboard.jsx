@@ -20,6 +20,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
   const [submitting, setSubmitting] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
+  const [verifyingVideo, setVerifyingVideo] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -143,8 +144,72 @@ const InfluencerDashboard = ({ walletAddress }) => {
     }
   };
 
+  const verifyVideoOwnership = async (youtubeUrl) => {
+    if (!profile.youtubeChannelId) {
+      alert('Please set your YouTube Channel ID in your profile first.');
+      return false;
+    }
+
+    if (!profile.isChannelVerified) {
+      // Just warn but allow to continue, like channel verification pattern
+      console.log('Warning: Channel not verified, but allowing video verification');
+    }
+
+    try {
+      setVerifyingVideo(true);
+
+      // Extract video ID from URL
+      const videoIdMatch = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+      if (!videoIdMatch) {
+        alert('Invalid YouTube URL. Please provide a valid YouTube video URL.');
+        return false;
+      }
+
+      const videoId = videoIdMatch[1];
+
+      // Check if video belongs to user's channel
+      const response = await axios.post('http://localhost:3001/api/influencers/verify-video-ownership', {
+        videoId,
+        expectedChannelId: profile.youtubeChannelId,
+        walletAddress
+      });
+
+      if (response.data.isOwner) {
+        alert('Video ownership verified successfully! You can proceed with submission.');
+        return true;
+      } else {
+        alert(`Video ownership mismatch! This video belongs to channel "${response.data.actualChannelTitle}" but your registered channel is different. Please submit videos from your own channel.`);
+        return false;
+      }
+
+    } catch (error) {
+      console.error('Error verifying video ownership:', error);
+
+      if (error.response?.status === 404) {
+        alert('Video not found. The video could not be found or may be private. Please check the URL.');
+        return false;
+      } else if (error.response?.status === 403) {
+        alert('Video access restricted. Unable to verify video ownership due to privacy settings.');
+        return false;
+      } else {
+        alert(error.response?.data?.error || 'Could not verify video ownership, but you can still proceed. Manual review may be required.');
+        // Allow submission even if verification fails (network issues, etc.)
+        return true;
+      }
+    } finally {
+      setVerifyingVideo(false);
+    }
+  };
+
   const handleSubmissionSubmit = async (e) => {
     e.preventDefault();
+
+    // First verify video ownership
+    const isVideoValid = await verifyVideoOwnership(submissionForm.youtubeUrl);
+    if (!isVideoValid) {
+      return; // Don't proceed if verification fails
+    }
+
     setSubmitting(true);
 
     try {
@@ -165,7 +230,14 @@ const InfluencerDashboard = ({ walletAddress }) => {
 
     } catch (error) {
       console.error('Error submitting video:', error);
-      alert(error.response?.data?.error || 'Failed to submit video. Please try again.');
+
+      if (error.response?.data?.existingSubmission) {
+        const existing = error.response.data.existingSubmission;
+        const submittedDate = new Date(existing.submittedAt).toLocaleDateString();
+        alert(`You have already submitted a video for this campaign on ${submittedDate}. Only one submission per campaign is allowed.\n\nYour existing submission: ${existing.youtubeUrl}\nPerformance Score: ${Math.round(existing.performanceScore || 0)}`);
+      } else {
+        alert(error.response?.data?.error || 'Failed to submit video. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -182,28 +254,53 @@ const InfluencerDashboard = ({ walletAddress }) => {
   };
 
   if (loading) {
-    return <div className="text-center py-12 text-gray-600 text-lg">Loading dashboard...</div>;
+    return (
+      <div className="text-center py-12 text-black text-lg font-black" style={{
+        fontFamily: "'Orbitron', monospace",
+        textTransform: 'uppercase'
+      }}>
+        <div className="w-8 h-8 border-2 border-black border-t-transparent animate-spin mx-auto mb-4" style={{
+          borderRadius: 0
+        }}></div>
+        LOADING DASHBOARD...
+      </div>
+    );
   }
 
   return (
     <div className="max-w-6xl">
-      <h2 className="text-3xl font-semibold text-gray-800 mb-8">Influencer Dashboard</h2>
+      <h2 className="text-4xl font-black text-black mb-8 pixel-text-shadow" style={{
+        fontFamily: "'Orbitron', monospace",
+        textTransform: 'uppercase',
+        letterSpacing: '2px'
+      }}>◆ INFLUENCER DASHBOARD</h2>
 
       <div className="mb-12">
         <div className="text-center mb-8">
-          <h3 className="text-2xl font-semibold text-gray-800 mb-2 flex items-center justify-center">
-            <span className="mr-3">📝</span>
-            Profile Setup
+          <h3 className="text-2xl font-black text-black mb-2 flex items-center justify-center" style={{
+            fontFamily: "'Orbitron', monospace",
+            textTransform: 'uppercase'
+          }}>
+            <span className="mr-3">▲</span>
+            PROFILE SETUP
           </h3>
-          <p className="text-gray-600">Complete your profile to start participating in campaigns</p>
+          <p className="text-black font-bold" style={{
+            fontFamily: "'Orbitron', monospace",
+            textTransform: 'uppercase'
+          }}>COMPLETE YOUR PROFILE TO START PARTICIPATING IN CAMPAIGNS</p>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
+        <div className="bg-white p-6 pixel-border pixel-shadow" style={{
+          clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
+        }}>
           <form onSubmit={handleProfileSubmit} className="space-y-6">
             <div>
-              <label htmlFor="youtubeChannelName" className="block mb-2 font-semibold text-gray-800 flex items-center">
-                <span className="mr-2">🎥</span>
-                YouTube Channel Name
+              <label htmlFor="youtubeChannelName" className="block mb-2 font-black text-black flex items-center" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>
+                <span className="mr-2">►</span>
+                YOUTUBE CHANNEL NAME
               </label>
               <input
                 type="text"
@@ -211,15 +308,20 @@ const InfluencerDashboard = ({ walletAddress }) => {
                 value={profile.youtubeChannelName}
                 onChange={(e) => setProfile({...profile, youtubeChannelName: e.target.value})}
                 required
-                placeholder="Your channel name"
-                className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-blue-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
+                placeholder="YOUR CHANNEL NAME"
+                className="w-full p-4 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold" style={{
+                  fontFamily: "'Orbitron', monospace"
+                }}
               />
             </div>
 
             <div>
-              <label htmlFor="youtubeChannelId" className="block mb-2 font-semibold text-gray-800 flex items-center">
-                <span className="mr-2">🎯</span>
-                YouTube Channel ID
+              <label htmlFor="youtubeChannelId" className="block mb-2 font-black text-black flex items-center" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>
+                <span className="mr-2">►</span>
+                YOUTUBE CHANNEL ID
               </label>
               <input
                 type="text"
@@ -227,49 +329,68 @@ const InfluencerDashboard = ({ walletAddress }) => {
                 value={profile.youtubeChannelId}
                 onChange={(e) => setProfile({...profile, youtubeChannelId: e.target.value})}
                 required
-                placeholder="UCxxxxxxxxxxxxxxxxxxxxxxx"
-                className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-blue-400 focus:shadow-lg bg-white/80 backdrop-blur-sm font-mono"
+                placeholder="UCXXXXXXXXXXXXXXXXXXXXXXX"
+                className="w-full p-4 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold" style={{
+                  fontFamily: "'Orbitron', monospace"
+                }}
               />
-              <div className="mt-2 p-3 bg-blue-100/50 rounded-lg">
-                <div className="text-blue-700 text-sm font-medium flex items-center">
-                  <span className="mr-2">📍</span>
-                  Find in YouTube Studio → Settings → Channel → Advanced settings
+              <div className="mt-2 p-3 bg-black text-white pixel-border">
+                <div className="text-white text-sm font-bold flex items-center" style={{
+                  fontFamily: "'Orbitron', monospace"
+                }}>
+                  <span className="mr-2">►</span>
+                  FIND IN YOUTUBE STUDIO → SETTINGS → CHANNEL → ADVANCED SETTINGS
                 </div>
               </div>
             </div>
 
             <div>
-              <label htmlFor="email" className="block mb-2 font-semibold text-gray-800 flex items-center">
-                <span className="mr-2">📧</span>
-                Contact Email <span className="text-gray-400 text-sm ml-2">(optional)</span>
+              <label htmlFor="email" className="block mb-2 font-black text-black flex items-center" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>
+                <span className="mr-2">►</span>
+                CONTACT EMAIL <span className="text-gray-600 text-sm ml-2 font-bold">(OPTIONAL)</span>
               </label>
               <input
                 type="email"
                 id="email"
                 value={profile.email}
                 onChange={(e) => setProfile({...profile, email: e.target.value})}
-                placeholder="your@email.com"
-                className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-blue-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
+                placeholder="YOUR@EMAIL.COM"
+                className="w-full p-4 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold" style={{
+                  fontFamily: "'Orbitron', monospace"
+                }}
               />
             </div>
 
           {profile.youtubeChannelId && (
             <div className="mb-6">
-              <label className="block mb-2 font-semibold text-gray-800">Channel Verification Status</label>
+              <label className="block mb-2 font-black text-black" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>CHANNEL VERIFICATION STATUS</label>
               <div className="mt-2">
                 {profile.isChannelVerified ? (
-                  <div className="text-green-600 font-semibold flex items-center gap-2">
-                    ✅ Channel Verified
+                  <div className="text-black font-black flex items-center gap-2" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>
+                    ▲ CHANNEL VERIFIED
                   </div>
                 ) : (
-                  <div className="text-red-600 font-semibold flex items-center gap-2">
-                    ❌ Channel Not Verified
+                  <div className="text-black font-black flex items-center gap-2" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>
+                    ▼ CHANNEL NOT VERIFIED
                     <button
                       type="button"
                       onClick={generateVerificationCode}
-                      className="bg-blue-500 text-white border-none py-2 px-4 rounded-md text-sm cursor-pointer transition-colors hover:bg-blue-600 ml-2"
+                      className="pixel-button py-2 px-4 text-sm font-black ml-2" style={{
+                        fontFamily: "'Orbitron', monospace",
+                        textTransform: 'uppercase'
+                      }}
                     >
-                      Verify Channel
+                      VERIFY CHANNEL
                     </button>
                   </div>
                 )}
@@ -278,28 +399,52 @@ const InfluencerDashboard = ({ walletAddress }) => {
           )}
 
           {showVerification && !profile.isChannelVerified && (
-            <div className="bg-gray-50 border border-gray-300 rounded-lg p-6 mt-4">
-              <h4 className="text-gray-800 font-semibold mb-4">Channel Verification</h4>
-              <p className="text-gray-700 mb-4">To verify your channel ownership, add this code to your channel banner or latest video description:</p>
-              <div className="bg-gray-200 border-2 border-gray-600 rounded-md p-4 my-4 font-mono text-lg text-center tracking-wide">
-                <strong>{profile.verificationCode}</strong>
+            <div className="bg-black text-white p-6 mt-4 pixel-border">
+              <h4 className="text-white font-black mb-4" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>CHANNEL VERIFICATION</h4>
+              <p className="text-white mb-4 font-bold" style={{
+                fontFamily: "'Orbitron', monospace"
+              }}>TO VERIFY YOUR CHANNEL OWNERSHIP, ADD THIS CODE TO YOUR CHANNEL's LATEST VIDEO DESCRIPTION:</p>
+              <div className="bg-white border-2 border-black p-4 my-4 text-lg text-center tracking-wide font-black text-black" style={{
+                fontFamily: "'Orbitron', monospace"
+              }}>
+                {profile.verificationCode}
               </div>
-              <p className="text-gray-700 mb-4"><em>After adding the code, click "Complete Verification" below.</em></p>
+              <p className="text-white mb-4 font-bold" style={{
+                fontFamily: "'Orbitron', monospace"
+              }}>AFTER ADDING THE CODE, CLICK "COMPLETE VERIFICATION" BELOW.</p>
               <button
                 type="button"
                 onClick={handleVerifyChannel}
                 disabled={verifying}
-                className="bg-green-600 text-white border-none py-3 px-6 rounded-lg font-semibold cursor-pointer transition-all duration-200 hover:bg-green-700 hover:-translate-y-0.5 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:transform-none"
+                className="pixel-button py-3 px-6 font-black transition-all duration-100 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" style={{
+                  fontFamily: "'Orbitron', monospace",
+                  textTransform: 'uppercase'
+                }}
               >
-                {verifying ? 'Verifying...' : 'Complete Verification'}
+                {verifying ? (
+                  <span className="flex items-center">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin mr-2" style={{
+                      borderRadius: 0
+                    }}></div>
+                    VERIFYING...
+                  </span>
+                ) : (
+                  'COMPLETE VERIFICATION'
+                )}
               </button>
             </div>
           )}
 
             <div className="pt-4">
-              <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-none py-4 px-8 rounded-xl font-semibold text-base transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex items-center justify-center">
-                <span className="mr-2">💾</span>
-                Save Profile
+              <button type="submit" className="w-full pixel-button py-4 px-8 font-black text-base transition-all duration-100 flex items-center justify-center" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>
+                <span className="mr-2">►</span>
+                SAVE PROFILE
               </button>
             </div>
           </form>
@@ -309,40 +454,71 @@ const InfluencerDashboard = ({ walletAddress }) => {
       {registeredCampaigns.length > 0 && (
         <div className="mb-12">
           <div className="text-center mb-8">
-            <h3 className="text-2xl font-semibold text-gray-800 mb-2 flex items-center justify-center">
-              <span className="mr-3">🎬</span>
-              Submit Video
+            <h3 className="text-2xl font-black text-black mb-2 flex items-center justify-center" style={{
+              fontFamily: "'Orbitron', monospace",
+              textTransform: 'uppercase'
+            }}>
+              <span className="mr-3">▲</span>
+              SUBMIT VIDEO
             </h3>
-            <p className="text-gray-600">Share your campaign video and start earning rewards</p>
+            <p className="text-black font-bold" style={{
+              fontFamily: "'Orbitron', monospace",
+              textTransform: 'uppercase'
+            }}>SHARE YOUR CAMPAIGN VIDEO AND START EARNING REWARDS</p>
           </div>
 
-          <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-xl border border-emerald-200">
+          <div className="bg-white p-6 pixel-border pixel-shadow" style={{
+            clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
+          }}>
             <form onSubmit={handleSubmissionSubmit} className="space-y-6">
               <div>
-                <label htmlFor="campaignSelect" className="block mb-2 font-semibold text-gray-800 flex items-center">
-                  <span className="mr-2">🎯</span>
-                  Select Campaign
+                <label htmlFor="campaignSelect" className="block mb-2 font-black text-black flex items-center" style={{
+                  fontFamily: "'Orbitron', monospace",
+                  textTransform: 'uppercase'
+                }}>
+                  <span className="mr-2">►</span>
+                  SELECT CAMPAIGN
                 </label>
                 <select
                   id="campaignSelect"
                   value={submissionForm.campaignId}
                   onChange={(e) => setSubmissionForm({...submissionForm, campaignId: e.target.value})}
                   required
-                  className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-emerald-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
+                  className="w-full p-4 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}
                 >
-                  <option value="">Choose a campaign...</option>
-                  {registeredCampaigns.map((campaign) => (
-                    <option key={campaign.id} value={campaign.id}>
-                      {campaign.title || `Campaign #${campaign.id}`} - {campaign.totalReward} FLOW
-                    </option>
-                  ))}
+                  <option value="">CHOOSE A CAMPAIGN...</option>
+                  {registeredCampaigns.map((campaign) => {
+                    const hasSubmitted = submissions.some(sub => sub.campaignId == campaign.id);
+                    return (
+                      <option
+                        key={campaign.id}
+                        value={campaign.id}
+                        disabled={hasSubmitted}
+                        style={hasSubmitted ? { backgroundColor: '#f0f0f0', color: '#666' } : {}}
+                      >
+                        {hasSubmitted ? '✓ SUBMITTED: ' : ''}{(campaign.title || `CAMPAIGN #${campaign.id}`).toUpperCase()} - {campaign.totalReward} FLOW
+                      </option>
+                    );
+                  })}
                 </select>
+                {registeredCampaigns.some(campaign => submissions.some(sub => sub.campaignId == campaign.id)) && (
+                  <div className="mt-2 text-black text-sm font-bold" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>
+                    ℹ️ Campaigns marked "✓ SUBMITTED" are disabled - only one submission per campaign allowed.
+                  </div>
+                )}
               </div>
 
               <div>
-                <label htmlFor="youtubeUrl" className="block mb-2 font-semibold text-gray-800 flex items-center">
-                  <span className="mr-2">🔗</span>
-                  YouTube Video URL
+                <label htmlFor="youtubeUrl" className="block mb-2 font-black text-black flex items-center" style={{
+                  fontFamily: "'Orbitron', monospace",
+                  textTransform: 'uppercase'
+                }}>
+                  <span className="mr-2">►</span>
+                  YOUTUBE VIDEO URL
                 </label>
                 <input
                   type="url"
@@ -350,26 +526,71 @@ const InfluencerDashboard = ({ walletAddress }) => {
                   value={submissionForm.youtubeUrl}
                   onChange={(e) => setSubmissionForm({...submissionForm, youtubeUrl: e.target.value})}
                   required
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full p-4 border-2 border-white/80 rounded-xl text-base transition-all focus:outline-none focus:border-emerald-400 focus:shadow-lg bg-white/80 backdrop-blur-sm"
+                  placeholder="HTTPS://WWW.YOUTUBE.COM/WATCH?V=..."
+                  className="w-full p-4 border-3 border-black text-base transition-all focus:outline-none bg-white font-bold" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}
                 />
               </div>
+
+              {/* Video Verification Section */}
+              {submissionForm.youtubeUrl && (
+                <div className="bg-black text-white p-4 pixel-border">
+                  <h4 className="text-white font-black mb-3" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>🔒 VIDEO OWNERSHIP VERIFICATION</h4>
+                  <p className="text-white mb-3 font-bold text-sm" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>To ensure authenticity, we'll verify this video belongs to your registered YouTube channel.</p>
+                  <button
+                    type="button"
+                    onClick={() => verifyVideoOwnership(submissionForm.youtubeUrl)}
+                    disabled={verifyingVideo || !submissionForm.youtubeUrl}
+                    className="pixel-button py-2 px-4 text-sm font-black transition-all duration-100 disabled:opacity-60 disabled:cursor-not-allowed mr-3" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    {verifyingVideo ? (
+                      <span className="flex items-center">
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin mr-2" style={{
+                          borderRadius: 0
+                        }}></div>
+                        VERIFYING...
+                      </span>
+                    ) : (
+                      '🔍 VERIFY VIDEO'
+                    )}
+                  </button>
+                  <div className="mt-2 text-yellow-400 text-xs font-bold" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>
+                    ⚠️ Verification happens automatically when you submit, but you can check beforehand.
+                  </div>
+                </div>
+              )}
 
               <div className="pt-4">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white border-none py-4 px-8 rounded-xl font-semibold text-base transition-all duration-300 hover:-translate-y-1 hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
+                  className="w-full pixel-button py-4 px-8 font-black text-base transition-all duration-100 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}
                 >
                   {submitting ? (
                     <span className="flex items-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Submitting...
+                      <div className="w-5 h-5 border-2 border-current border-t-transparent animate-spin mr-2" style={{
+                        borderRadius: 0
+                      }}></div>
+                      SUBMITTING...
                     </span>
                   ) : (
                     <span className="flex items-center">
-                      <span className="mr-2">🚀</span>
-                      Submit Video
+                      <span className="mr-2">►</span>
+                      SUBMIT VIDEO
                     </span>
                   )}
                 </button>
@@ -380,33 +601,61 @@ const InfluencerDashboard = ({ walletAddress }) => {
       )}
 
       <div className="mb-12">
-        <h3 className="text-gray-800 text-xl font-semibold mb-6 pb-2 border-b-2 border-gray-200">My Registered Campaigns</h3>
+        <h3 className="text-black text-xl font-black mb-6 pb-2 border-b-2 border-black" style={{
+          fontFamily: "'Orbitron', monospace",
+          textTransform: 'uppercase'
+        }}>◆ MY REGISTERED CAMPAIGNS</h3>
         {registeredCampaigns.length === 0 ? (
-          <p className="text-center py-12 text-gray-600">You haven't registered for any campaigns yet. Browse campaigns to get started!</p>
+          <p className="text-center py-12 text-black font-bold" style={{
+            fontFamily: "'Orbitron', monospace",
+            textTransform: 'uppercase'
+          }}>YOU HAVEN'T REGISTERED FOR ANY CAMPAIGNS YET. BROWSE CAMPAIGNS TO GET STARTED!</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {registeredCampaigns.map((campaign) => (
-              <div key={campaign.id} className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl shadow-sm border border-amber-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+              <div key={campaign.id} className="bg-white overflow-hidden pixel-border pixel-shadow transition-all duration-100 hover:-translate-y-1" style={{
+                clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))'
+              }}>
                 <div className="p-6">
-                  <h4 className="text-lg font-bold text-gray-800 mb-2">{campaign.title || `Campaign #${campaign.id}`}</h4>
-                  <p className="text-gray-600 mb-4 overflow-hidden line-clamp-2">{campaign.description}</p>
+                  <h4 className="text-lg font-black text-black mb-2" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>{campaign.title || `CAMPAIGN #${campaign.id}`}</h4>
+                  <p className="text-black mb-4 overflow-hidden line-clamp-2 font-bold" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>{campaign.description}</p>
                   <div className="grid grid-cols-2 gap-4 mb-4 text-black">
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <div className="block text-lg text-gray-800 font-semibold">{campaign.totalReward} FLOW</div>
-                      <div className="text-sm text-gray-600">Reward</div>
+                    <div className="text-center p-3 bg-black text-white pixel-border">
+                      <div className="block text-lg text-white font-black" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}>{campaign.totalReward} FLOW</div>
+                      <div className="text-sm text-white font-bold" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}>REWARD</div>
                     </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <div className="block text-lg text-gray-800 font-semibold">{campaign.influencerCount}</div>
-                      <div className="text-sm text-gray-600">Participants</div>
+                    <div className="text-center p-3 bg-black text-white pixel-border">
+                      <div className="block text-lg text-white font-black" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}>{campaign.influencerCount}</div>
+                      <div className="text-sm text-white font-bold" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}>PARTICIPANTS</div>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-600 mb-4">
-                    <p className="mb-1"><strong>Registration Ends:</strong> {formatDate(campaign.registrationEnd)}</p>
-                    <p><strong>Campaign Ends:</strong> {formatDate(campaign.campaignEnd)}</p>
+                  <div className="text-sm text-black mb-4 font-bold" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>
+                    <p className="mb-1"><span className="font-black">► REGISTRATION ENDS:</span> {formatDate(campaign.registrationEnd)}</p>
+                    <p><span className="font-black">► CAMPAIGN ENDS:</span> {formatDate(campaign.campaignEnd)}</p>
                   </div>
-                  <div className="bg-gray-50 text-gray-600 p-4 rounded-lg border-l-4 border-indigo-500">
-                    <strong className="text-gray-800">Requirements:</strong>
-                    <p className="mt-2">{campaign.requirements}</p>
+                  <div className="bg-black text-white p-4 pixel-border border-l-4 border-white">
+                    <strong className="text-white font-black" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>REQUIREMENTS:</strong>
+                    <p className="mt-2 font-bold" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>{campaign.requirements}</p>
                   </div>
                 </div>
               </div>
@@ -417,10 +666,15 @@ const InfluencerDashboard = ({ walletAddress }) => {
 
       {submissions.length > 0 && (
         <div className="mb-12">
-          <h3 className="text-gray-800 text-xl font-semibold mb-6 pb-2 border-b-2 border-gray-200">My Submissions</h3>
+          <h3 className="text-black text-xl font-black mb-6 pb-2 border-b-2 border-black" style={{
+            fontFamily: "'Orbitron', monospace",
+            textTransform: 'uppercase'
+          }}>◆ MY SUBMISSIONS</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {submissions.map((submission) => (
-              <div key={submission.id} className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-xl overflow-hidden shadow-sm border border-rose-200 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+              <div key={submission.id} className="bg-white overflow-hidden pixel-border pixel-shadow transition-all duration-100 hover:-translate-y-1" style={{
+                clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+              }}>
                 <a
                   href={submission.youtubeUrl}
                   target="_blank"
@@ -436,19 +690,32 @@ const InfluencerDashboard = ({ walletAddress }) => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gray-50 flex items-center justify-center text-gray-600 text-sm border-2 border-dashed border-gray-300">No Video</div>
+                      <div className="w-full h-full bg-white flex items-center justify-center text-black text-sm border-2 border-black font-bold" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}>NO VIDEO</div>
                     )}
                   </div>
                 </a>
                 <div className="p-4">
-                  <h4 className="text-gray-800 font-semibold text-base mb-2">{submission.campaign_title}</h4>
-                  <div className="flex justify-between text-sm text-gray-600 mb-3">
-                    <span>👀 {(submission.viewCount || 0).toLocaleString()}</span>
-                    <span>👍 {(submission.likeCount || 0).toLocaleString()}</span>
-                    <span>💬 {(submission.commentCount || 0).toLocaleString()}</span>
+                  <h4 className="text-black font-black text-base mb-2" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>{submission.campaign_title}</h4>
+                  <div className="flex justify-between text-sm text-black mb-3 font-bold" style={{
+                    fontFamily: "'Orbitron', monospace"
+                  }}>
+                    <span>► {(submission.viewCount || 0).toLocaleString()}</span>
+                    <span>▲ {(submission.likeCount || 0).toLocaleString()}</span>
+                    <span>◆ {(submission.commentCount || 0).toLocaleString()}</span>
                   </div>
-                  <p className="text-indigo-600 font-semibold mb-2">Performance Score: {Math.round(submission.performanceScore || 0).toLocaleString()}</p>
-                  <p className="text-gray-600 text-xs">Submitted: {formatDate(new Date(submission.createdAt).getTime())}</p>
+                  <p className="text-black font-black mb-2" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>PERFORMANCE SCORE: {Math.round(submission.performanceScore || 0).toLocaleString()}</p>
+                  <p className="text-black text-xs font-bold" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>SUBMITTED: {formatDate(new Date(submission.createdAt).getTime())}</p>
                 </div>
               </div>
             ))}
