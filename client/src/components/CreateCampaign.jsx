@@ -96,7 +96,7 @@ const CreateCampaign = ({ walletAddress }) => {
 
       const result = await web3Service.createCampaign(
         registrationDuration,
-        totalDuration - registrationDuration, // Campaign duration after registration
+        totalDuration, // Total campaign duration from now
         formData.rewardAmount
       );
 

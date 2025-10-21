@@ -1256,6 +1256,28 @@ app.post('/api/submissions', async (req, res) => {
       }
 
       console.log(`✅ Video channel verification passed for ${videoId} - belongs to ${influencer.youtubeChannelName}`);
+
+      // Check if video was published after campaign creation
+      const campaign = await Campaign.findOne({ blockchainId: campaignId });
+      if (!campaign) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+
+      const videoPublishedAt = new Date(video.snippet.publishedAt);
+      const campaignCreatedAt = new Date(campaign.createdAt);
+
+      console.log(`📅 Video published: ${videoPublishedAt.toISOString()}`);
+      console.log(`📅 Campaign created: ${campaignCreatedAt.toISOString()}`);
+
+      if (videoPublishedAt < campaignCreatedAt) {
+        return res.status(400).json({
+          error: `Video must be published after the campaign was created. This video was published on ${videoPublishedAt.toLocaleDateString()} but the campaign was created on ${campaignCreatedAt.toLocaleDateString()}.`,
+          videoPublished: videoPublishedAt.toISOString(),
+          campaignCreated: campaignCreatedAt.toISOString()
+        });
+      }
+
+      console.log(`✅ Video publish date validation passed - video is newer than campaign`);
     } catch (channelCheckError) {
       console.error('Error verifying video channel:', channelCheckError.message);
       return res.status(400).json({ error: 'Failed to verify video channel ownership' });
