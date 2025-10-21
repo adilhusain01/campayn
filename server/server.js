@@ -134,7 +134,7 @@ class YouTubeAPIManager {
 }
 
 const youtubeAPI = new YouTubeAPIManager();
-const CAMPAIGN_MANAGER_ADDRESS = '0x297C5234fCf04f906a2D4f551ddd9c3468AB9000';
+const CAMPAIGN_MANAGER_ADDRESS = '0x91C0979942149feD82672d2CeA65311073547178';
 const CAMPAIGN_MANAGER_ABI =[
 	{
 		"inputs": [],
