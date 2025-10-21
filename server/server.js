@@ -16,16 +16,31 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+console.log('🚀 Starting Campayn Server...');
+console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`🌐 Port: ${PORT}`);
+
 app.use(cors());
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`📥 [${timestamp}] ${req.method} ${req.path}`);
+  if (Object.keys(req.body).length > 0) {
+    console.log(`📋 Request body: ${JSON.stringify(req.body, null, 2)}`);
+  }
+  next();
+});
 
 // MongoDB Connection
 const connectDB = async () => {
   try {
+    console.log('🔗 Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/campayn');
-    console.log('MongoDB connected successfully');
+    console.log('✅ MongoDB connected successfully');
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    console.error('❌ MongoDB connection error:', error);
     process.exit(1);
   }
 };
@@ -119,41 +134,585 @@ class YouTubeAPIManager {
 }
 
 const youtubeAPI = new YouTubeAPIManager();
-const CAMPAIGN_MANAGER_ADDRESS = '0x69579be58808F847a103479Bb023E9c457127369';
-const CAMPAIGN_MANAGER_ABI = [
-  {
-    "inputs": [{"internalType": "uint256", "name": "campaignId", "type": "uint256"}, {"internalType": "address[3]", "name": "winners", "type": "address[3]"}, {"internalType": "uint256[3]", "name": "", "type": "uint256[3]"}],
-    "name": "completeCampaign",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [{"internalType": "uint256", "name": "campaignId", "type": "uint256"}],
-    "name": "getCampaignInfo",
-    "outputs": [{"internalType": "address", "name": "company", "type": "address"}, {"internalType": "uint256", "name": "totalReward", "type": "uint256"}, {"internalType": "uint256", "name": "registrationEnd", "type": "uint256"}, {"internalType": "uint256", "name": "campaignEnd", "type": "uint256"}, {"internalType": "bool", "name": "isActive", "type": "bool"}, {"internalType": "bool", "name": "isCompleted", "type": "bool"}, {"internalType": "uint256", "name": "influencerCount", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{"internalType": "uint256", "name": "campaignId", "type": "uint256"}],
-    "name": "getCampaignInfluencers",
-    "outputs": [{"internalType": "address[]", "name": "", "type": "address[]"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getActiveCampaigns",
-    "outputs": [{"internalType": "uint256[]", "name": "", "type": "uint256[]"}],
-    "stateMutability": "view",
-    "type": "function"
-  }
+const CAMPAIGN_MANAGER_ADDRESS = '0x297C5234fCf04f906a2D4f551ddd9c3468AB9000';
+const CAMPAIGN_MANAGER_ABI =[
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "address[]",
+				"name": "winners",
+				"type": "address[]"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256[]",
+				"name": "rewards",
+				"type": "uint256[]"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "refundAmount",
+				"type": "uint256"
+			}
+		],
+		"name": "CampaignCompleted",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "company",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "totalReward",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "registrationEnd",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "campaignEnd",
+				"type": "uint256"
+			}
+		],
+		"name": "CampaignCreated",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address[]",
+				"name": "winners",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "submissionTimes",
+				"type": "uint256[]"
+			}
+		],
+		"name": "completeCampaignFlexible",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_registrationDuration",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_campaignDuration",
+				"type": "uint256"
+			}
+		],
+		"name": "createCampaign",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			}
+		],
+		"name": "emergencyWithdraw",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "influencer",
+				"type": "address"
+			}
+		],
+		"name": "InfluencerRegistered",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "company",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "RefundIssued",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			}
+		],
+		"name": "registerInfluencer",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "influencer",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "rank",
+				"type": "uint256"
+			}
+		],
+		"name": "RewardDistributed",
+		"type": "event"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "receive"
+	},
+	{
+		"inputs": [],
+		"name": "campaignCounter",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "campaignInfluencers",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "campaigns",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "id",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "company",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalReward",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "registrationEnd",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "campaignEnd",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isActive",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "isCompleted",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "influencerCount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "remainingReward",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "campaignWinners",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "influencer",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "rank",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "reward",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "submissionTime",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getActiveCampaigns",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			}
+		],
+		"name": "getCampaignInfluencers",
+		"outputs": [
+			{
+				"internalType": "address[]",
+				"name": "",
+				"type": "address[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			}
+		],
+		"name": "getCampaignInfo",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "company",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalReward",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "registrationEnd",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "campaignEnd",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isActive",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "isCompleted",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "influencerCount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "remainingReward",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			}
+		],
+		"name": "getCampaignWinnerCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			}
+		],
+		"name": "getCampaignWinners",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "influencer",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "rank",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "reward",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "submissionTime",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct CampaignManager.Winner[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "isInfluencerRegistered",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "influencer",
+				"type": "address"
+			}
+		],
+		"name": "isInfluencerRegisteredForCampaign",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
 ];
 
+console.log('⛓️ Initializing blockchain connection...');
 const provider = new ethers.JsonRpcProvider('https://testnet.evm.nodes.onflow.org');
+console.log('🔐 Creating wallet instance...');
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+console.log(`💼 Wallet address: ${wallet.address}`);
+console.log('📄 Connecting to smart contract...');
 const contract = new ethers.Contract(CAMPAIGN_MANAGER_ADDRESS, CAMPAIGN_MANAGER_ABI, wallet);
+console.log(`✅ Contract connected at: ${CAMPAIGN_MANAGER_ADDRESS}`);
 
 async function getYouTubeVideoStats(videoId) {
   console.log(`🎥 Attempting to fetch YouTube stats for video ID: ${videoId}`);
@@ -305,9 +864,12 @@ app.post('/api/campaigns', async (req, res) => {
 // Get All Campaigns
 app.get('/api/campaigns', async (req, res) => {
   try {
+    console.log('📋 Fetching all campaigns from database...');
     const campaigns = await Campaign.find().sort({ createdAt: -1 });
+    console.log(`✅ Found ${campaigns.length} campaigns`);
     res.json(campaigns);
   } catch (error) {
+    console.error('❌ Error fetching campaigns:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -349,19 +911,62 @@ app.post('/api/influencers', async (req, res) => {
   try {
     const { walletAddress, youtubeChannelId, youtubeChannelName, email } = req.body;
 
+    const lowerWalletAddress = walletAddress.toLowerCase();
+
+
+    // Check for duplicate YouTube Channel ID (only if it's different from current user's)
+    if (youtubeChannelId) {
+      const channelExists = await Influencer.findOne({
+        youtubeChannelId,
+        walletAddress: { $ne: lowerWalletAddress }
+      });
+
+      if (channelExists) {
+        return res.status(400).json({
+          error: 'This YouTube Channel ID is already registered by another influencer',
+          field: 'youtubeChannelId',
+          existingUser: {
+            channelName: channelExists.youtubeChannelName,
+            walletAddress: channelExists.walletAddress.slice(0, 6) + '...' + channelExists.walletAddress.slice(-4)
+          }
+        });
+      }
+    }
+
+    // Check for duplicate email (only if it's different from current user's)
+    if (email) {
+      const emailExists = await Influencer.findOne({
+        email: email.toLowerCase(),
+        walletAddress: { $ne: lowerWalletAddress }
+      });
+
+      if (emailExists) {
+        return res.status(400).json({
+          error: 'This email is already registered by another influencer',
+          field: 'email',
+          existingUser: {
+            channelName: emailExists.youtubeChannelName,
+            walletAddress: emailExists.walletAddress.slice(0, 6) + '...' + emailExists.walletAddress.slice(-4)
+          }
+        });
+      }
+    }
+
+    // Create or update influencer
     const influencer = await Influencer.findOneAndUpdate(
-      { walletAddress: walletAddress.toLowerCase() },
+      { walletAddress: lowerWalletAddress },
       {
-        walletAddress: walletAddress.toLowerCase(),
+        walletAddress: lowerWalletAddress,
         youtubeChannelId,
         youtubeChannelName,
-        email
+        email: email ? email.toLowerCase() : email
       },
       { upsert: true, new: true }
     );
 
     res.json({ id: influencer._id });
   } catch (error) {
+    console.error('Error saving influencer:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -489,6 +1094,49 @@ app.post('/api/influencers/verify-channel', async (req, res) => {
   } catch (error) {
     console.error('Channel verification error:', error);
     res.status(500).json({ error: 'Internal server error during verification' });
+  }
+});
+
+// Check if influencer is verified (required for campaign registration)
+app.get('/api/influencers/:walletAddress/verification-status', async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'Wallet address is required' });
+    }
+
+    const influencer = await Influencer.findOne({
+      walletAddress: walletAddress.toLowerCase()
+    });
+
+    if (!influencer) {
+      return res.status(404).json({
+        error: 'Influencer profile not found',
+        isVerified: false,
+        hasProfile: false
+      });
+    }
+
+    const isVerified = influencer.isChannelVerified === true;
+    const hasRequiredFields = !!(influencer.youtubeChannelId && influencer.youtubeChannelName);
+
+    res.json({
+      isVerified,
+      hasProfile: true,
+      hasRequiredFields,
+      canRegisterForCampaigns: isVerified && hasRequiredFields,
+      profile: {
+        youtubeChannelName: influencer.youtubeChannelName,
+        youtubeChannelId: influencer.youtubeChannelId,
+        email: influencer.email,
+        verificationDate: influencer.verificationDate
+      }
+    });
+
+  } catch (error) {
+    console.error('Error checking verification status:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -680,10 +1328,29 @@ app.post('/api/submissions', async (req, res) => {
     });
 
     const savedSubmission = await submission.save();
+
+    // Return complete submission data with all required fields
     res.json({
       id: savedSubmission._id,
-      videoStats,
-      performanceScore
+      campaignId: savedSubmission.campaignId,
+      influencerId: savedSubmission.influencerId,
+      youtubeVideoId: savedSubmission.youtubeVideoId,
+      youtubeUrl: savedSubmission.youtubeUrl,
+      viewCount: savedSubmission.viewCount,
+      likeCount: savedSubmission.likeCount,
+      commentCount: savedSubmission.commentCount,
+      performanceScore: savedSubmission.performanceScore,
+      createdAt: savedSubmission.createdAt,
+      updatedAt: savedSubmission.updatedAt,
+      // Add additional fields for client compatibility
+      youtube_video_id: savedSubmission.youtubeVideoId,
+      youtube_url: savedSubmission.youtubeUrl,
+      view_count: savedSubmission.viewCount,
+      like_count: savedSubmission.likeCount,
+      comment_count: savedSubmission.commentCount,
+      performance_score: savedSubmission.performanceScore,
+      wallet_address: walletAddress.toLowerCase(),
+      youtube_channel_name: influencer.youtubeChannelName
     });
   } catch (error) {
     console.error('Error in video submission:', error);
@@ -792,11 +1459,14 @@ cron.schedule('0 */2 * * *', async () => {
 });
 
 // Campaign Completion Cron Job
-cron.schedule('0 */6 * * *', async () => {
-  console.log('Checking for campaigns to complete...');
+cron.schedule('0 * * * *', async () => {
+  const timestamp = new Date().toISOString();
+  console.log(`⏰ [${timestamp}] Starting campaign completion cron job...`);
 
   try {
+    console.log('🔍 Fetching active campaigns from blockchain...');
     const activeCampaigns = await contract.getActiveCampaigns();
+    console.log(`📊 Found ${activeCampaigns.length} active campaigns to check`);
 
     for (const campaignId of activeCampaigns) {
       try {
@@ -805,52 +1475,114 @@ cron.schedule('0 */6 * * *', async () => {
         const isCompleted = campaignInfo[5];
 
         if (Date.now() >= campaignEnd && !isCompleted) {
+          console.log(`🎯 Campaign ${campaignId} has ended and needs completion`);
+          console.log(`📅 Campaign end time: ${new Date(campaignEnd).toISOString()}`);
+
+          // Get submissions with FCFS logic for equal performance scores
+          console.log(`🏆 Fetching top performers for campaign ${campaignId}...`);
           const topPerformers = await Submission.find({ campaignId })
             .populate('influencerId', 'walletAddress')
-            .sort({ performanceScore: -1 })
+            .sort({
+              performanceScore: -1, // Primary: highest performance score first
+              createdAt: 1           // Secondary: earliest submission first (FCFS for ties)
+            })
             .limit(3)
             .lean();
 
-          if (topPerformers.length >= 3) {
-            const winners = [
-              topPerformers[0].influencerId.walletAddress,
-              topPerformers[1].influencerId.walletAddress,
-              topPerformers[2].influencerId.walletAddress
-            ];
+          console.log(`📈 Found ${topPerformers.length} submissions for campaign ${campaignId}`);
 
-            // Calculate proper reward distribution (50%, 30%, 20%)
-            const totalReward = campaignInfo[1]; // Total reward in wei
-            const rewards = [
-              (totalReward * BigInt(50)) / BigInt(100), // 50% for 1st place
-              (totalReward * BigInt(30)) / BigInt(100), // 30% for 2nd place
-              (totalReward * BigInt(20)) / BigInt(100)  // 20% for 3rd place
-            ];
+          if (topPerformers.length >= 1) { // Changed from 3 to 1 minimum
+            const winners = topPerformers.map(performer => performer.influencerId.walletAddress);
+            const submissionTimes = topPerformers.map(performer => Math.floor(new Date(performer.createdAt).getTime() / 1000)); // Convert to Unix timestamp
+
+            console.log(`🏆 Winners for campaign ${campaignId}:`);
+            winners.forEach((winner, index) => {
+              console.log(`  ${index + 1}. ${winner} (submitted: ${new Date(submissionTimes[index] * 1000).toISOString()})`);
+            });
 
             try {
-              const tx = await contract.completeCampaign(campaignId, winners, rewards);
-              await tx.wait();
-              console.log(`Campaign ${campaignId} completed with winners:`, winners);
-              console.log(`Rewards distributed: 1st: ${ethers.formatEther(rewards[0])} FLOW, 2nd: ${ethers.formatEther(rewards[1])} FLOW, 3rd: ${ethers.formatEther(rewards[2])} FLOW`);
+              console.log(`⛓️ Submitting completion transaction for campaign ${campaignId}...`);
+              const tx = await contract.completeCampaignFlexible(campaignId, winners, submissionTimes);
+              console.log(`📝 Transaction hash: ${tx.hash}`);
+              console.log(`⏳ Waiting for transaction confirmation...`);
+              const receipt = await tx.wait();
+              console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
+
+              // Calculate what each winner gets for logging
+              const totalReward = campaignInfo[1]; // Total reward in wei
+              const rewardPercentages = [50, 30, 20]; // Fixed percentages
+              const actualRewards = [];
+              let totalDistributed = BigInt(0);
+
+              for (let i = 0; i < winners.length; i++) {
+                const reward = (totalReward * BigInt(rewardPercentages[i])) / BigInt(100);
+                actualRewards.push(reward);
+                totalDistributed += reward;
+              }
+
+              const refundAmount = totalReward - totalDistributed;
+
+              console.log(`🎉 Campaign ${campaignId} completed with ${winners.length} winner(s):`);
+              for (let i = 0; i < winners.length; i++) {
+                console.log(`   ${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : 'rd'} place: ${winners[i]} - ${ethers.formatEther(actualRewards[i])} FLOW (${rewardPercentages[i]}%)`);
+              }
+              if (refundAmount > 0) {
+                console.log(`💰 Refund to creator: ${ethers.formatEther(refundAmount)} FLOW`);
+              }
             } catch (error) {
-              console.error(`Error completing campaign ${campaignId}:`, error);
+              console.error(`❌ Error completing campaign ${campaignId}:`, error);
             }
           } else {
-            console.log(`Campaign ${campaignId} has insufficient participants (${topPerformers.length}/3 required)`);
+            console.log(`⚠️  Campaign ${campaignId} has no participants - all funds will be returned to creator`);
+
+            // For campaigns with 0 participants, we need to use emergencyWithdraw
+            // But emergency withdraw has a 7-day grace period, so we'll check if enough time has passed
+            const gracePeriodEnd = campaignEnd + (7 * 24 * 60 * 60 * 1000); // 7 days after campaign end
+
+            if (Date.now() >= gracePeriodEnd) {
+              try {
+                const tx = await contract.emergencyWithdraw(campaignId);
+                await tx.wait();
+
+                const totalReward = campaignInfo[1]; // Total reward in wei
+                console.log(`💰 Emergency withdraw completed for campaign ${campaignId} - full refund of ${ethers.formatEther(totalReward)} FLOW returned to creator`);
+              } catch (error) {
+                console.error(`❌ Error performing emergency withdraw for campaign ${campaignId}:`, error);
+              }
+            } else {
+              const timeLeft = Math.ceil((gracePeriodEnd - Date.now()) / (24 * 60 * 60 * 1000));
+              console.log(`⏳ Campaign ${campaignId} has no participants. Emergency withdraw available in ${timeLeft} day(s)`);
+            }
           }
+        } else {
+          console.log(`⏭️ Campaign ${campaignId} not ready for completion yet`);
         }
       } catch (error) {
-        console.error(`Error processing campaign ${campaignId}:`, error);
+        console.error(`❌ Error processing campaign ${campaignId}:`, error.message);
+        console.error(`📍 Stack trace:`, error.stack);
       }
     }
+
+    console.log(`🏁 Campaign completion cron job finished. Processed ${activeCampaigns.length} campaigns.`);
   } catch (error) {
-    console.error('Error fetching active campaigns:', error);
+    console.error('💥 Critical error in campaign completion cron job:', error.message);
+    console.error('📍 Stack trace:', error.stack);
   }
 });
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-  console.error(error);
-  res.status(500).json({ error: 'Internal server error' });
+  const timestamp = new Date().toISOString();
+  console.error(`💥 [${timestamp}] Unhandled error on ${req.method} ${req.path}`);
+  console.error(`❌ Error message: ${error.message}`);
+  console.error(`📍 Stack trace:`, error.stack);
+
+  res.status(500).json({
+    error: 'Internal server error',
+    timestamp: timestamp,
+    path: req.path,
+    method: req.method
+  });
 });
 
 // Health check endpoint
@@ -877,8 +1609,14 @@ app.get('/api/youtube-quota', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log('Database:', mongoose.connection.readyState === 1 ? 'Connected' : 'Connecting...');
+  console.log('🎉 Server successfully started!');
+  console.log(`🌐 Server running on port ${PORT}`);
+  console.log(`🔗 API Base URL: http://localhost:${PORT}`);
+  console.log('💾 Database:', mongoose.connection.readyState === 1 ? 'Connected ✅' : 'Connecting... ⏳');
+  console.log('⛓️ Blockchain:', wallet.address ? 'Connected ✅' : 'Not Connected ❌');
+  console.log('🤖 YouTube API:', YOUTUBE_API_KEY ? 'Configured ✅' : 'Not Configured ❌');
+  console.log('⏰ Cron jobs: Active ✅');
+  console.log('=====================================');
 });
 
 export default app;

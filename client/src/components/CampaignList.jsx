@@ -8,10 +8,25 @@ const CampaignList = ({ walletAddress }) => {
   const [loading, setLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [registering, setRegistering] = useState({});
+  const [verificationStatus, setVerificationStatus] = useState(null);
+  const [registeredCampaigns, setRegisteredCampaigns] = useState(new Set());
 
   useEffect(() => {
     loadCampaigns();
-  }, []);
+    loadVerificationStatus();
+  }, [walletAddress]);
+
+  const loadVerificationStatus = async () => {
+    if (!walletAddress) return;
+
+    try {
+      const response = await api.get(`/api/influencers/${walletAddress}/verification-status`);
+      setVerificationStatus(response.data);
+    } catch (error) {
+      console.error('Error loading verification status:', error);
+      setVerificationStatus({ canRegisterForCampaigns: false, isVerified: false, hasProfile: false });
+    }
+  };
 
   const loadCampaigns = async () => {
     try {
@@ -32,6 +47,30 @@ const CampaignList = ({ walletAddress }) => {
 
       const campaignData = await Promise.all(campaignPromises);
       setCampaigns(campaignData);
+
+      // Check registration status for each campaign
+      if (walletAddress && campaignData.length > 0) {
+        const registrationPromises = campaignData.map(async (campaign) => {
+          try {
+            const isRegistered = await web3Service.isInfluencerRegistered(campaign.id, walletAddress);
+            return { campaignId: campaign.id, isRegistered };
+          } catch (error) {
+            console.error(`Error checking registration for campaign ${campaign.id}:`, error);
+            return { campaignId: campaign.id, isRegistered: false };
+          }
+        });
+
+        const registrationResults = await Promise.all(registrationPromises);
+        const registeredSet = new Set();
+
+        registrationResults.forEach(({ campaignId, isRegistered }) => {
+          if (isRegistered) {
+            registeredSet.add(campaignId);
+          }
+        });
+
+        setRegisteredCampaigns(registeredSet);
+      }
     } catch (error) {
       console.error('Error loading campaigns:', error);
     } finally {
@@ -43,7 +82,43 @@ const CampaignList = ({ walletAddress }) => {
     setRegistering({ ...registering, [campaignId]: true });
 
     try {
+      // First check if influencer is verified
+      const verificationResponse = await api.get(`/api/influencers/${walletAddress}/verification-status`);
+      const verificationData = verificationResponse.data;
+
+      if (!verificationData.hasProfile) {
+        toast.error('Profile Required!', {
+          description: 'You need to complete your influencer profile first. Go to the Influencer Dashboard to set up your profile.',
+          duration: 8000,
+        });
+        setRegistering({ ...registering, [campaignId]: false });
+        return;
+      }
+
+      if (!verificationData.hasRequiredFields) {
+        toast.error('Profile Incomplete!', {
+          description: 'Please complete your YouTube Channel ID and Channel Name in your profile before registering.',
+          duration: 8000,
+        });
+        setRegistering({ ...registering, [campaignId]: false });
+        return;
+      }
+
+      if (!verificationData.isVerified) {
+        toast.error('Channel Verification Required!', {
+          description: 'You must verify your YouTube channel before registering for campaigns. Complete verification in the Influencer Dashboard.',
+          duration: 8000,
+        });
+        setRegistering({ ...registering, [campaignId]: false });
+        return;
+      }
+
+      // If all checks pass, proceed with blockchain registration
       await web3Service.registerInfluencer(campaignId);
+
+      // Update registered campaigns state
+      setRegisteredCampaigns(prev => new Set([...prev, campaignId]));
+
       toast.success('Registration Successful!', {
         description: 'You have successfully registered for the campaign. You can now submit videos!',
         duration: 6000,
@@ -267,6 +342,34 @@ const CampaignList = ({ walletAddress }) => {
         letterSpacing: '2px'
       }}>▶ ACTIVE CAMPAIGNS</h2>
 
+      {/* Verification Status Banner */}
+      {verificationStatus && !verificationStatus.canRegisterForCampaigns && (
+        <div className="bg-yellow-50 border-2 border-yellow-400 p-6 mb-8 pixel-border" style={{
+          clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))'
+        }}>
+          <h3 className="text-black font-black mb-3 flex items-center" style={{
+            fontFamily: "'Orbitron', monospace",
+            textTransform: 'uppercase'
+          }}>
+            <span className="mr-2">⚠</span>
+            CAMPAIGN REGISTRATION REQUIREMENTS
+          </h3>
+          <div className="text-black font-bold" style={{
+            fontFamily: "'Orbitron', monospace"
+          }}>
+            {!verificationStatus.hasProfile ? (
+              <p>► You need to create your influencer profile first. Go to the Influencer Dashboard to get started.</p>
+            ) : !verificationStatus.hasRequiredFields ? (
+              <p>► Please complete your YouTube Channel ID and Channel Name in your profile.</p>
+            ) : !verificationStatus.isVerified ? (
+              <p>► You must verify your YouTube channel ownership before registering for campaigns. Complete verification in the Influencer Dashboard.</p>
+            ) : (
+              <p>► Complete all requirements in the Influencer Dashboard to register for campaigns.</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {campaigns.length === 0 ? (
         <div className="text-center py-12 text-black font-bold" style={{
           fontFamily: "'Orbitron', monospace",
@@ -346,26 +449,58 @@ const CampaignList = ({ walletAddress }) => {
                     ▶ VIEW DETAILS
                   </button>
 
-                  {Date.now() < campaign.registrationEnd && (
-                    <button
-                      onClick={() => handleRegister(campaign.id)}
-                      disabled={registering[campaign.id]}
-                      className="flex-1 py-3 px-4 pixel-button font-black transition-all duration-100 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" style={{
-                        fontFamily: "'Orbitron', monospace",
-                        textTransform: 'uppercase'
-                      }}
-                    >
-                      {registering[campaign.id] ? (
-                        <span className="flex items-center justify-center">
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin mr-2" style={{
-                            borderRadius: 0
-                          }}></div>
-                          REGISTERING...
-                        </span>
+                  {/* Registration Status Section */}
+                  {registeredCampaigns.has(campaign.id) ? (
+                    // Already registered - show status
+                    <div className="flex-1 py-3 px-4 bg-green-50 border-2 border-green-400 text-green-700 font-black text-center" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>
+                      ✓ REGISTERED
+                    </div>
+                  ) : Date.now() < campaign.registrationEnd ? (
+                    <>
+                      {/* Show verification requirements if not verified */}
+                      {verificationStatus && !verificationStatus.canRegisterForCampaigns ? (
+                        <div className="flex-1 py-3 px-4 bg-red-50 border-2 border-red-300 text-red-700 font-black text-center" style={{
+                          fontFamily: "'Orbitron', monospace",
+                          textTransform: 'uppercase'
+                        }}>
+                          {!verificationStatus.hasProfile ? '⚠ PROFILE REQUIRED' :
+                           !verificationStatus.hasRequiredFields ? '⚠ COMPLETE PROFILE' :
+                           !verificationStatus.isVerified ? '⚠ VERIFY CHANNEL' : '⚠ VERIFICATION NEEDED'}
+                        </div>
                       ) : (
-                        '★ REGISTER'
+                        /* Show registration button only if verified and not registered */
+                        <button
+                          onClick={() => handleRegister(campaign.id)}
+                          disabled={registering[campaign.id]}
+                          className="flex-1 py-3 px-4 pixel-button font-black transition-all duration-100 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" style={{
+                            fontFamily: "'Orbitron', monospace",
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          {registering[campaign.id] ? (
+                            <span className="flex items-center justify-center">
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin mr-2" style={{
+                                borderRadius: 0
+                              }}></div>
+                              REGISTERING...
+                            </span>
+                          ) : (
+                            '★ REGISTER'
+                          )}
+                        </button>
                       )}
-                    </button>
+                    </>
+                  ) : (
+                    // Registration period ended
+                    <div className="flex-1 py-3 px-4 bg-gray-50 border-2 border-gray-300 text-gray-600 font-black text-center" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>
+                      REGISTRATION CLOSED
+                    </div>
                   )}
                 </div>
               </div>

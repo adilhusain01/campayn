@@ -1,4 +1,4 @@
-export const CAMPAIGN_MANAGER_ADDRESS='0x56d153f0D960e6483bE8135D21BCea2949675e96';
+export const CAMPAIGN_MANAGER_ADDRESS='0x297C5234fCf04f906a2D4f551ddd9c3468AB9000';
 export const CAMPAIGN_MANAGER_ABI=[
 	{
 		"inputs": [],
@@ -16,15 +16,21 @@ export const CAMPAIGN_MANAGER_ABI=[
 			},
 			{
 				"indexed": false,
-				"internalType": "address[3]",
+				"internalType": "address[]",
 				"name": "winners",
-				"type": "address[3]"
+				"type": "address[]"
 			},
 			{
 				"indexed": false,
-				"internalType": "uint256[3]",
+				"internalType": "uint256[]",
 				"name": "rewards",
-				"type": "uint256[3]"
+				"type": "uint256[]"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "refundAmount",
+				"type": "uint256"
 			}
 		],
 		"name": "CampaignCompleted",
@@ -75,17 +81,17 @@ export const CAMPAIGN_MANAGER_ABI=[
 				"type": "uint256"
 			},
 			{
-				"internalType": "address[3]",
+				"internalType": "address[]",
 				"name": "winners",
-				"type": "address[3]"
+				"type": "address[]"
 			},
 			{
-				"internalType": "uint256[3]",
-				"name": "",
-				"type": "uint256[3]"
+				"internalType": "uint256[]",
+				"name": "submissionTimes",
+				"type": "uint256[]"
 			}
 		],
-		"name": "completeCampaign",
+		"name": "completeCampaignFlexible",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -147,6 +153,31 @@ export const CAMPAIGN_MANAGER_ABI=[
 		"type": "event"
 	},
 	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "company",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "RefundIssued",
+		"type": "event"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "uint256",
@@ -179,6 +210,12 @@ export const CAMPAIGN_MANAGER_ABI=[
 				"internalType": "uint256",
 				"name": "amount",
 				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "rank",
+				"type": "uint256"
 			}
 		],
 		"name": "RewardDistributed",
@@ -196,6 +233,30 @@ export const CAMPAIGN_MANAGER_ABI=[
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "campaignInfluencers",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
 			}
 		],
 		"stateMutability": "view",
@@ -250,6 +311,11 @@ export const CAMPAIGN_MANAGER_ABI=[
 				"internalType": "uint256",
 				"name": "influencerCount",
 				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "remainingReward",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -283,6 +349,11 @@ export const CAMPAIGN_MANAGER_ABI=[
 			{
 				"internalType": "uint256",
 				"name": "reward",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "submissionTime",
 				"type": "uint256"
 			}
 		],
@@ -365,6 +436,30 @@ export const CAMPAIGN_MANAGER_ABI=[
 				"internalType": "uint256",
 				"name": "influencerCount",
 				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "remainingReward",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "campaignId",
+				"type": "uint256"
+			}
+		],
+		"name": "getCampaignWinnerCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -396,11 +491,40 @@ export const CAMPAIGN_MANAGER_ABI=[
 						"internalType": "uint256",
 						"name": "reward",
 						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "submissionTime",
+						"type": "uint256"
 					}
 				],
-				"internalType": "struct CampaignManager.Winner[3]",
+				"internalType": "struct CampaignManager.Winner[]",
 				"name": "",
-				"type": "tuple[3]"
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "isInfluencerRegistered",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
 			}
 		],
 		"stateMutability": "view",
@@ -419,7 +543,7 @@ export const CAMPAIGN_MANAGER_ABI=[
 				"type": "address"
 			}
 		],
-		"name": "isInfluencerRegistered",
+		"name": "isInfluencerRegisteredForCampaign",
 		"outputs": [
 			{
 				"internalType": "bool",

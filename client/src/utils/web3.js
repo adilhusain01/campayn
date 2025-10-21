@@ -142,7 +142,8 @@ export class Web3Service {
         campaignEnd: Number(info[3]) * 1000,
         isActive: info[4],
         isCompleted: info[5],
-        influencerCount: Number(info[6])
+        influencerCount: Number(info[6]),
+        remainingReward: ethers.formatEther(info[7] || 0)
       };
     } catch (error) {
       console.error('Error getting campaign info:', error);
@@ -170,10 +171,56 @@ export class Web3Service {
       return winners.map(winner => ({
         influencer: winner.influencer,
         rank: Number(winner.rank),
-        reward: ethers.formatEther(winner.reward)
+        reward: ethers.formatEther(winner.reward),
+        submissionTime: Number(winner.submissionTime)
       }));
     } catch (error) {
       console.error('Error getting campaign winners:', error);
+      throw error;
+    }
+  }
+
+  async completeCampaignFlexible(campaignId, winners, submissionTimes) {
+    if (!this.contract) throw new Error('Contract not initialized');
+
+    try {
+      const tx = await this.contract.completeCampaignFlexible(campaignId, winners, submissionTimes);
+      const receipt = await tx.wait();
+
+      return {
+        txHash: receipt.hash,
+        success: true
+      };
+    } catch (error) {
+      console.error('Error completing campaign:', error);
+      throw error;
+    }
+  }
+
+  async getCampaignWinnerCount(campaignId) {
+    if (!this.contract) throw new Error('Contract not initialized');
+
+    try {
+      return Number(await this.contract.getCampaignWinnerCount(campaignId));
+    } catch (error) {
+      console.error('Error getting winner count:', error);
+      throw error;
+    }
+  }
+
+  async emergencyWithdraw(campaignId) {
+    if (!this.contract) throw new Error('Contract not initialized');
+
+    try {
+      const tx = await this.contract.emergencyWithdraw(campaignId);
+      const receipt = await tx.wait();
+
+      return {
+        txHash: receipt.hash,
+        success: true
+      };
+    } catch (error) {
+      console.error('Error emergency withdrawing:', error);
       throw error;
     }
   }

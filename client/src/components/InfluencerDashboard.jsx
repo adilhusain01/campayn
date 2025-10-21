@@ -140,7 +140,16 @@ const InfluencerDashboard = ({ walletAddress }) => {
       alert('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Failed to update profile. Please try again.');
+
+      if (error.response?.data?.field === 'youtubeChannelId') {
+        const existing = error.response.data.existingUser;
+        alert(`This YouTube Channel ID is already registered!\n\nExisting user:\n• Channel: ${existing.channelName}\n• Wallet: ${existing.walletAddress}\n\nPlease use a different YouTube channel.`);
+      } else if (error.response?.data?.field === 'email') {
+        const existing = error.response.data.existingUser;
+        alert(`This email is already registered!\n\nExisting user:\n• Channel: ${existing.channelName}\n• Wallet: ${existing.walletAddress}\n\nPlease use a different email address.`);
+      } else {
+        alert(error.response?.data?.error || 'Failed to update profile. Please try again.');
+      }
     }
   };
 
@@ -226,7 +235,14 @@ const InfluencerDashboard = ({ walletAddress }) => {
         ...response.data,
         campaign_title: registeredCampaigns.find(c => c.id == submissionForm.campaignId)?.title || `Campaign #${submissionForm.campaignId}`
       };
+
+      console.log('New submission data:', newSubmission); // Debug log
       setSubmissions(prev => [newSubmission, ...prev]);
+
+      // Reload dashboard data to ensure we have the latest information
+      setTimeout(() => {
+        loadDashboardData();
+      }, 1000);
 
     } catch (error) {
       console.error('Error submitting video:', error);
@@ -715,7 +731,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
                   <p className="text-black text-xs font-bold" style={{
                     fontFamily: "'Orbitron', monospace",
                     textTransform: 'uppercase'
-                  }}>SUBMITTED: {formatDate(new Date(submission.createdAt).getTime())}</p>
+                  }}>SUBMITTED: {formatDate(submission.createdAt ? new Date(submission.createdAt).getTime() : Date.now())}</p>
                 </div>
               </div>
             ))}
