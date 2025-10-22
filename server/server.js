@@ -1502,7 +1502,8 @@ cron.schedule('0 * * * *', async () => {
 
           // Get submissions with FCFS logic for equal performance scores
           console.log(`🏆 Fetching top performers for campaign ${campaignId}...`);
-          const topPerformers = await Submission.find({ campaignId })
+          const campaignIdNumber = Number(campaignId); // Convert BigInt to Number for MongoDB
+          const topPerformers = await Submission.find({ campaignId: campaignIdNumber })
             .populate('influencerId', 'walletAddress')
             .sort({
               performanceScore: -1, // Primary: highest performance score first
