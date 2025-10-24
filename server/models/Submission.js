@@ -43,6 +43,62 @@ const submissionSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0
+  },
+  // AI Content Verification Results
+  aiVerification: {
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected', 'error'],
+      default: 'pending'
+    },
+    approved: {
+      type: Boolean,
+      default: false
+    },
+    confidence: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    reason: {
+      type: String
+    },
+    brandMentions: [{
+      type: String
+    }],
+    promotionalSegmentWordCount: {
+      type: Number,
+      default: 0
+    },
+    meetsRequirements: {
+      mentionsBrand: {
+        type: Boolean,
+        default: false
+      },
+      followsGuidelines: {
+        type: Boolean,
+        default: false
+      },
+      adequateWordCount: {
+        type: Boolean,
+        default: false
+      }
+    },
+    transcriptLanguage: {
+      type: String
+    },
+    transcriptLength: {
+      type: Number
+    },
+    processingTime: {
+      type: Number
+    },
+    verifiedAt: {
+      type: Date
+    },
+    error: {
+      type: String
+    }
   }
 }, {
   timestamps: true

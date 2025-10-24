@@ -11,6 +11,9 @@ import Campaign from './models/Campaign.js';
 import Influencer from './models/Influencer.js';
 import Submission from './models/Submission.js';
 
+// Import AI services
+import aiVerificationService from './services/aiVerificationService.js';
+
 dotenv.config();
 
 const app = express();
@@ -134,576 +137,8 @@ class YouTubeAPIManager {
 }
 
 const youtubeAPI = new YouTubeAPIManager();
-const CAMPAIGN_MANAGER_ADDRESS = '0x91C0979942149feD82672d2CeA65311073547178';
-const CAMPAIGN_MANAGER_ABI =[
-	{
-		"inputs": [],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "address[]",
-				"name": "winners",
-				"type": "address[]"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256[]",
-				"name": "rewards",
-				"type": "uint256[]"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "refundAmount",
-				"type": "uint256"
-			}
-		],
-		"name": "CampaignCompleted",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "company",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "totalReward",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "registrationEnd",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "campaignEnd",
-				"type": "uint256"
-			}
-		],
-		"name": "CampaignCreated",
-		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address[]",
-				"name": "winners",
-				"type": "address[]"
-			},
-			{
-				"internalType": "uint256[]",
-				"name": "submissionTimes",
-				"type": "uint256[]"
-			}
-		],
-		"name": "completeCampaignFlexible",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_registrationDuration",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_campaignDuration",
-				"type": "uint256"
-			}
-		],
-		"name": "createCampaign",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			}
-		],
-		"name": "emergencyWithdraw",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "influencer",
-				"type": "address"
-			}
-		],
-		"name": "InfluencerRegistered",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "company",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "RefundIssued",
-		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			}
-		],
-		"name": "registerInfluencer",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "influencer",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "rank",
-				"type": "uint256"
-			}
-		],
-		"name": "RewardDistributed",
-		"type": "event"
-	},
-	{
-		"stateMutability": "payable",
-		"type": "receive"
-	},
-	{
-		"inputs": [],
-		"name": "campaignCounter",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "campaignInfluencers",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "campaigns",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "id",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "company",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "totalReward",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "registrationEnd",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "campaignEnd",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "isActive",
-				"type": "bool"
-			},
-			{
-				"internalType": "bool",
-				"name": "isCompleted",
-				"type": "bool"
-			},
-			{
-				"internalType": "uint256",
-				"name": "influencerCount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "remainingReward",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "campaignWinners",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "influencer",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "rank",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "reward",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "submissionTime",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "getActiveCampaigns",
-		"outputs": [
-			{
-				"internalType": "uint256[]",
-				"name": "",
-				"type": "uint256[]"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			}
-		],
-		"name": "getCampaignInfluencers",
-		"outputs": [
-			{
-				"internalType": "address[]",
-				"name": "",
-				"type": "address[]"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			}
-		],
-		"name": "getCampaignInfo",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "company",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "totalReward",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "registrationEnd",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "campaignEnd",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "isActive",
-				"type": "bool"
-			},
-			{
-				"internalType": "bool",
-				"name": "isCompleted",
-				"type": "bool"
-			},
-			{
-				"internalType": "uint256",
-				"name": "influencerCount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "remainingReward",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			}
-		],
-		"name": "getCampaignWinnerCount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			}
-		],
-		"name": "getCampaignWinners",
-		"outputs": [
-			{
-				"components": [
-					{
-						"internalType": "address",
-						"name": "influencer",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "rank",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "reward",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "submissionTime",
-						"type": "uint256"
-					}
-				],
-				"internalType": "struct CampaignManager.Winner[]",
-				"name": "",
-				"type": "tuple[]"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"name": "isInfluencerRegistered",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "campaignId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "influencer",
-				"type": "address"
-			}
-		],
-		"name": "isInfluencerRegisteredForCampaign",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "owner",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	}
-];
+
+import { CAMPAIGN_MANAGER_ADDRESS, CAMPAIGN_MANAGER_ABI } from './utils/contract.js';
 
 console.log('⛓️ Initializing blockchain connection...');
 const provider = new ethers.JsonRpcProvider('https://testnet.evm.nodes.onflow.org');
@@ -837,18 +272,93 @@ function extractVideoIdFromUrl(url) {
   return match[1];
 }
 
+// AI Verification Helper Function
+async function performAIVerification(submissionId, videoId, campaign) {
+  try {
+    console.log(`🤖 Starting AI verification for submission ${submissionId}, video ${videoId}`);
+
+    // Check if AI verification is enabled for this campaign
+    if (!campaign.aiVerification || !campaign.aiVerification.enabled) {
+      console.log(`⚠️ AI verification disabled for campaign ${campaign.blockchainId}`);
+      await Submission.findByIdAndUpdate(submissionId, {
+        'aiVerification.status': 'approved',
+        'aiVerification.approved': true,
+        'aiVerification.reason': 'AI verification disabled for this campaign',
+        'aiVerification.verifiedAt': new Date()
+      });
+      return;
+    }
+
+    // Perform AI verification
+    const verificationResult = await aiVerificationService.verifyVideoContent(videoId, {
+      title: campaign.title,
+      description: campaign.description,
+      requirements: campaign.requirements,
+      aiVerification: campaign.aiVerification
+    });
+
+    // Update submission with verification results
+    const updateData = {
+      'aiVerification.status': verificationResult.approved ? 'approved' : 'rejected',
+      'aiVerification.approved': verificationResult.approved,
+      'aiVerification.confidence': verificationResult.confidence,
+      'aiVerification.reason': verificationResult.reason,
+      'aiVerification.brandMentions': verificationResult.brandMentions || [],
+      'aiVerification.promotionalSegmentWordCount': verificationResult.promotionalSegmentWordCount || 0,
+      'aiVerification.meetsRequirements': verificationResult.meetsRequirements || {},
+      'aiVerification.transcriptLanguage': verificationResult.transcriptLanguage,
+      'aiVerification.transcriptLength': verificationResult.transcriptLength,
+      'aiVerification.processingTime': verificationResult.processingTime,
+      'aiVerification.verifiedAt': new Date()
+    };
+
+    if (verificationResult.error) {
+      updateData['aiVerification.status'] = 'error';
+      updateData['aiVerification.error'] = verificationResult.error;
+    }
+
+    await Submission.findByIdAndUpdate(submissionId, updateData);
+
+    console.log(`✅ AI verification completed for submission ${submissionId}. Result: ${verificationResult.approved ? 'APPROVED' : 'REJECTED'}`);
+
+  } catch (error) {
+    console.error(`❌ AI verification failed for submission ${submissionId}:`, error.message);
+
+    // Update submission with error status
+    await Submission.findByIdAndUpdate(submissionId, {
+      'aiVerification.status': 'error',
+      'aiVerification.approved': false,
+      'aiVerification.reason': `AI verification failed: ${error.message}`,
+      'aiVerification.error': 'PROCESSING_ERROR',
+      'aiVerification.verifiedAt': new Date()
+    });
+  }
+}
+
 // API Routes
 
 // Create Campaign
 app.post('/api/campaigns', async (req, res) => {
   try {
-    const { blockchainId, title, description, requirements } = req.body;
+    const {
+      blockchainId,
+      title,
+      description,
+      requirements,
+      aiVerification
+    } = req.body;
 
     const campaign = new Campaign({
       blockchainId,
       title,
       description,
-      requirements
+      requirements,
+      aiVerification: aiVerification || {
+        enabled: true,
+        minimumWordCount: 50,
+        requiredKeywords: [],
+        strictMode: false
+      }
     });
 
     const savedCampaign = await campaign.save();
@@ -1346,10 +856,16 @@ app.post('/api/submissions', async (req, res) => {
       viewCount: videoStats.viewCount,
       likeCount: videoStats.likeCount,
       commentCount: videoStats.commentCount,
-      performanceScore
+      performanceScore,
+      aiVerification: {
+        status: 'pending'
+      }
     });
 
     const savedSubmission = await submission.save();
+
+    // Perform AI content verification asynchronously
+    performAIVerification(savedSubmission._id, videoId, campaign);
 
     // Return complete submission data with all required fields
     res.json({
@@ -1372,7 +888,8 @@ app.post('/api/submissions', async (req, res) => {
       comment_count: savedSubmission.commentCount,
       performance_score: savedSubmission.performanceScore,
       wallet_address: walletAddress.toLowerCase(),
-      youtube_channel_name: influencer.youtubeChannelName
+      youtube_channel_name: influencer.youtubeChannelName,
+      aiVerification: savedSubmission.aiVerification
     });
   } catch (error) {
     console.error('Error in video submission:', error);
@@ -1420,6 +937,69 @@ app.get('/api/campaigns/:id/submissions', async (req, res) => {
     }));
 
     res.json(formattedSubmissions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get AI Verification Status for Submission
+app.get('/api/submissions/:id/ai-verification', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const submission = await Submission.findById(id)
+      .select('aiVerification youtubeVideoId youtubeUrl')
+      .lean();
+
+    if (!submission) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    res.json({
+      submissionId: id,
+      videoId: submission.youtubeVideoId,
+      videoUrl: submission.youtubeUrl,
+      aiVerification: submission.aiVerification
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Manually Trigger AI Verification (for testing/retry)
+app.post('/api/submissions/:id/verify', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const submission = await Submission.findById(id)
+      .populate({
+        path: 'campaignId',
+        model: 'Campaign'
+      });
+
+    if (!submission) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    const campaign = await Campaign.findOne({ blockchainId: submission.campaignId });
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+
+    // Reset verification status
+    await Submission.findByIdAndUpdate(id, {
+      'aiVerification.status': 'pending',
+      'aiVerification.approved': false
+    });
+
+    // Trigger AI verification
+    performAIVerification(id, submission.youtubeVideoId, campaign);
+
+    res.json({
+      message: 'AI verification triggered',
+      submissionId: id,
+      status: 'processing'
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

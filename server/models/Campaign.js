@@ -18,6 +18,27 @@ const campaignSchema = new mongoose.Schema({
   requirements: {
     type: String,
     required: true
+  },
+  // AI Content Verification Settings
+  aiVerification: {
+    enabled: {
+      type: Boolean,
+      default: true
+    },
+    minimumWordCount: {
+      type: Number,
+      default: 50,
+      min: 10,
+      max: 1000
+    },
+    requiredKeywords: [{
+      type: String,
+      trim: true
+    }],
+    strictMode: {
+      type: Boolean,
+      default: false
+    }
   }
 }, {
   timestamps: true

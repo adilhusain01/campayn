@@ -13,6 +13,14 @@ const CreateCampaign = ({ walletAddress }) => {
     rewardAmount: '0.1'
   });
 
+  // AI Verification settings
+  const [aiSettings, setAiSettings] = useState({
+    enabled: true,
+    minimumWordCount: 50,
+    requiredKeywords: [],
+    strictMode: false
+  });
+
   // Separate state for date/time selections
   const [registrationEndDate, setRegistrationEndDate] = useState(
     new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) // Default: 3 days from now
@@ -104,7 +112,8 @@ const CreateCampaign = ({ walletAddress }) => {
         blockchainId: result.campaignId,
         title: formData.title,
         description: formData.description,
-        requirements: formData.requirements
+        requirements: formData.requirements,
+        aiVerification: aiSettings
       });
 
       setSuccess(`Campaign created successfully! Campaign ID: ${result.campaignId}`);
@@ -121,9 +130,15 @@ const CreateCampaign = ({ walletAddress }) => {
         rewardAmount: '0.1'
       });
 
-      // Reset dates to defaults
+      // Reset dates and AI settings to defaults
       setRegistrationEndDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000));
       setCampaignEndDate(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000));
+      setAiSettings({
+        enabled: true,
+        minimumWordCount: 50,
+        requiredKeywords: [],
+        strictMode: false
+      });
 
     } catch (error) {
       console.error('Error creating campaign:', error);
@@ -377,34 +392,10 @@ const CreateCampaign = ({ walletAddress }) => {
                   </div>
                 </div>
               </div>
-
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full pixel-button py-4 px-8 text-lg font-black pixel-shadow transition-all duration-100 disabled:opacity-60 disabled:cursor-not-allowed" style={{
-                    fontFamily: "'Orbitron', monospace",
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-current border-t-transparent animate-spin mr-2" style={{
-                        borderRadius: 0
-                      }}></div>
-                      CREATING CAMPAIGN...
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center">
-                      🚀 LAUNCH CAMPAIGN ({formData.rewardAmount} FLOW)
-                    </span>
-                  )}
-                </button>
-              </div>
             </div>
           </div>
 
-          {/* Step 4: Campaign Summary & Actions */}
+          {/* Step 4: AI Content Verification */}
           <div className="bg-white p-6 pixel-border pixel-shadow" style={{
             clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
           }}>
@@ -415,6 +406,126 @@ const CreateCampaign = ({ walletAddress }) => {
               <span className="bg-black text-white w-8 h-8 flex items-center justify-center text-sm font-black mr-3 pixel-border" style={{
                 fontFamily: "'Orbitron', monospace"
               }}>4</span>
+              🤖 AI CONTENT VERIFICATION
+            </h3>
+
+            <div className="space-y-6">
+              <div className="bg-blue-50 p-4 pixel-border border-blue-600">
+                <h4 className="font-black mb-2" style={{
+                  fontFamily: "'Orbitron', monospace",
+                  textTransform: 'uppercase'
+                }}>🧠 WHAT IS AI VERIFICATION?</h4>
+                <p className="font-bold text-sm" style={{
+                  fontFamily: "'Orbitron', monospace"
+                }}>
+                  AI automatically analyzes video transcripts to ensure influencers actually mention your brand/product and follow campaign requirements. This prevents fake submissions and ensures genuine promotional content.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="aiEnabled"
+                  checked={aiSettings.enabled}
+                  onChange={(e) => setAiSettings({...aiSettings, enabled: e.target.checked})}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="aiEnabled" className="font-black text-black" style={{
+                  fontFamily: "'Orbitron', monospace",
+                  textTransform: 'uppercase'
+                }}>
+                  ENABLE AI CONTENT VERIFICATION
+                </label>
+              </div>
+
+              {aiSettings.enabled && (
+                <div className="space-y-4 bg-gray-50 p-4 pixel-border">
+                  <div>
+                    <label className="block mb-2 font-black text-black" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>► MINIMUM WORDS FOR PROMOTIONAL CONTENT</label>
+                    <input
+                      type="number"
+                      min="10"
+                      max="1000"
+                      value={aiSettings.minimumWordCount}
+                      onChange={(e) => setAiSettings({...aiSettings, minimumWordCount: parseInt(e.target.value)})}
+                      className="w-32 p-2 border-2 border-black font-bold" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}
+                    />
+                    <div className="mt-1 text-sm font-bold text-gray-600" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>
+                      RECOMMENDED: 50-200 WORDS FOR EFFECTIVE PROMOTION
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block mb-2 font-black text-black" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>► REQUIRED KEYWORDS (OPTIONAL)</label>
+                    <input
+                      type="text"
+                      value={aiSettings.requiredKeywords.join(', ')}
+                      onChange={(e) => setAiSettings({
+                        ...aiSettings,
+                        requiredKeywords: e.target.value ? e.target.value.split(',').map(k => k.trim()) : []
+                      })}
+                      placeholder="BRAND NAME, PRODUCT, FEATURE (COMMA SEPARATED)"
+                      className="w-full p-3 border-2 border-black font-bold" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}
+                    />
+                    <div className="mt-1 text-sm font-bold text-gray-600" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>
+                      LEAVE EMPTY TO LET AI DETECT BRAND MENTIONS AUTOMATICALLY
+                    </div>
+                  </div>
+
+                  {/* <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      id="strictMode"
+                      checked={aiSettings.strictMode}
+                      onChange={(e) => setAiSettings({...aiSettings, strictMode: e.target.checked})}
+                      className="w-4 h-4"
+                    />
+                    <label htmlFor="strictMode" className="font-black text-black" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>
+                      🔒 STRICT MODE (HIGHER STANDARDS)
+                    </label>
+                  </div> */}
+
+                  <div className="bg-yellow-50 p-3 pixel-border border-yellow-600">
+                    <div className="text-sm font-bold" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>
+                      💡 <strong>TIP:</strong> AI verification runs automatically when influencers submit videos.
+                      Only approved content will be eligible for rewards. Rejected submissions can be reviewed and re-submitted.
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Step 5: Campaign Summary & Actions */}
+          <div className="bg-white p-6 pixel-border pixel-shadow" style={{
+            clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
+          }}>
+            <h3 className="text-xl font-black text-black mb-6 flex items-center" style={{
+              fontFamily: "'Orbitron', monospace",
+              textTransform: 'uppercase'
+            }}>
+              <span className="bg-black text-white w-8 h-8 flex items-center justify-center text-sm font-black mr-3 pixel-border" style={{
+                fontFamily: "'Orbitron', monospace"
+              }}>5</span>
               📊 CAMPAIGN SUMMARY
             </h3>
 
@@ -472,6 +583,49 @@ const CreateCampaign = ({ walletAddress }) => {
                       {campaignEndDate.toLocaleDateString()} {campaignEndDate.toLocaleTimeString()}
                     </div>
                   </div>
+
+                  <div className="bg-black text-white p-3 pixel-border">
+                    <div className="text-xs font-black mb-1" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>AI Verification:</div>
+                    <div className="font-bold text-cyan-400 text-sm" style={{
+                      fontFamily: "'Orbitron', monospace"
+                    }}>
+                      {aiSettings.enabled ? '🤖 ENABLED' : '❌ DISABLED'}
+                    </div>
+                  </div>
+
+                  {aiSettings.enabled && (
+                    <>
+                      <div className="bg-black text-white p-3 pixel-border">
+                        <div className="text-xs font-black mb-1" style={{
+                          fontFamily: "'Orbitron', monospace",
+                          textTransform: 'uppercase'
+                        }}>Min Word Count:</div>
+                        <div className="font-bold text-purple-400 text-sm" style={{
+                          fontFamily: "'Orbitron', monospace"
+                        }}>
+                          {aiSettings.minimumWordCount} WORDS
+                        </div>
+                      </div>
+
+                      {aiSettings.requiredKeywords.length > 0 && (
+                        <div className="bg-black text-white p-3 pixel-border">
+                          <div className="text-xs font-black mb-1" style={{
+                            fontFamily: "'Orbitron', monospace",
+                            textTransform: 'uppercase'
+                          }}>Required Keywords:</div>
+                          <div className="font-bold text-blue-400 text-sm" style={{
+                            fontFamily: "'Orbitron', monospace"
+                          }}>
+                            {aiSettings.requiredKeywords.slice(0, 3).join(', ')}
+                            {aiSettings.requiredKeywords.length > 3 ? '...' : ''}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -496,6 +650,12 @@ const CreateCampaign = ({ walletAddress }) => {
                       });
                       setRegistrationEndDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000));
                       setCampaignEndDate(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000));
+                      setAiSettings({
+                        enabled: true,
+                        minimumWordCount: 50,
+                        requiredKeywords: [],
+                        strictMode: false
+                      });
                       toast.success('Form cleared! Start fresh.');
                     }}
                     className="w-full pixel-button py-3 px-4 text-sm font-black pixel-shadow transition-all duration-100 bg-gray-600 hover:bg-gray-700" style={{
@@ -515,7 +675,8 @@ const CreateCampaign = ({ walletAddress }) => {
                         requirements: formData.requirements,
                         rewardAmount: formData.rewardAmount,
                         registrationEnd: registrationEndDate.toISOString(),
-                        campaignEnd: campaignEndDate.toISOString()
+                        campaignEnd: campaignEndDate.toISOString(),
+                        aiVerification: aiSettings
                       };
 
                       navigator.clipboard.writeText(JSON.stringify(campaignData, null, 2));
@@ -533,10 +694,16 @@ const CreateCampaign = ({ walletAddress }) => {
                     <div className="text-xs font-black mb-2" style={{
                       fontFamily: "'Orbitron', monospace",
                       textTransform: 'uppercase'
-                    }}>💡 PRO TIP:</div>
-                    <div className="text-sm font-bold" style={{
+                    }}>💡 PRO TIPS:</div>
+                    <div className="space-y-1 text-sm font-bold" style={{
                       fontFamily: "'Orbitron', monospace"
-                    }}>Higher rewards attract more influencers. Consider 1+ FLOW for viral campaigns!</div>
+                    }}>
+                      <div>• Higher rewards attract more influencers. Consider 1+ FLOW for viral campaigns!</div>
+                      <div>• AI verification ensures genuine promotional content and prevents fraud.</div>
+                      {aiSettings.enabled && (
+                        <div>• Set {aiSettings.minimumWordCount} word minimum to ensure substantial brand mentions.</div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="bg-black text-white p-3 pixel-border">
@@ -615,8 +782,54 @@ const CreateCampaign = ({ walletAddress }) => {
                     Campaign end valid
                   </span>
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={aiSettings.enabled ? 'text-green-400' : 'text-yellow-400'}>
+                    {aiSettings.enabled ? '✓' : '⚠'}
+                  </span>
+                  <span style={{ fontFamily: "'Orbitron', monospace" }}>
+                    AI verification configured
+                  </span>
+                </div>
+
+                {aiSettings.enabled && (
+                  <div className="flex items-center gap-2">
+                    <span className={aiSettings.minimumWordCount >= 10 && aiSettings.minimumWordCount <= 1000 ? 'text-green-400' : 'text-red-400'}>
+                      {aiSettings.minimumWordCount >= 10 && aiSettings.minimumWordCount <= 1000 ? '✓' : '✗'}
+                    </span>
+                    <span style={{ fontFamily: "'Orbitron', monospace" }}>
+                      Word count valid (10-1000)
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
+          </div>
+
+          {/* Launch Campaign Button */}
+          <div className="mt-8">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full pixel-button py-6 px-8 text-xl font-black pixel-shadow transition-all duration-100 disabled:opacity-60 disabled:cursor-not-allowed" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase',
+                fontSize: '1.25rem'
+              }}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <div className="w-6 h-6 border-3 border-current border-t-transparent animate-spin mr-3" style={{
+                    borderRadius: 0
+                  }}></div>
+                  CREATING CAMPAIGN...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center">
+                  🚀 LAUNCH CAMPAIGN ({formData.rewardAmount} FLOW)
+                </span>
+              )}
+            </button>
           </div>
           </form>
       </div>

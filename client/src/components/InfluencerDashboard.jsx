@@ -21,6 +21,9 @@ const InfluencerDashboard = ({ walletAddress }) => {
   const [verifying, setVerifying] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [verifyingVideo, setVerifyingVideo] = useState(false);
+  const [showAIDetails, setShowAIDetails] = useState(null);
+  const [aiDetails, setAiDetails] = useState(null);
+  const [loadingAIDetails, setLoadingAIDetails] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -267,6 +270,35 @@ const InfluencerDashboard = ({ walletAddress }) => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const fetchAIVerificationDetails = async (submissionId) => {
+    setLoadingAIDetails(true);
+    try {
+      const response = await api.get(`/api/submissions/${submissionId}/ai-verification`);
+      setAiDetails(response.data);
+      setShowAIDetails(submissionId);
+    } catch (error) {
+      console.error('Error fetching AI verification details:', error);
+      alert('Failed to load AI verification details');
+    } finally {
+      setLoadingAIDetails(false);
+    }
+  };
+
+  const retryAIVerification = async (submissionId) => {
+    try {
+      await api.post(`/api/submissions/${submissionId}/verify`);
+      alert('AI verification has been triggered again. Results will be updated shortly.');
+
+      // Reload dashboard data after a few seconds
+      setTimeout(() => {
+        loadDashboardData();
+      }, 3000);
+    } catch (error) {
+      console.error('Error retrying AI verification:', error);
+      alert('Failed to retry AI verification');
+    }
   };
 
   if (loading) {
@@ -728,6 +760,52 @@ const InfluencerDashboard = ({ walletAddress }) => {
                     fontFamily: "'Orbitron', monospace",
                     textTransform: 'uppercase'
                   }}>PERFORMANCE SCORE: {Math.round(submission.performanceScore || 0).toLocaleString()}</p>
+
+                  {/* AI Verification Status */}
+                  {submission.aiVerification && (
+                    <div
+                      className={`p-2 mb-2 pixel-border cursor-pointer hover:opacity-80 transition-opacity ${
+                        submission.aiVerification.status === 'approved' ? 'bg-green-100 border-green-600' :
+                        submission.aiVerification.status === 'rejected' ? 'bg-red-100 border-red-600' :
+                        submission.aiVerification.status === 'error' ? 'bg-yellow-100 border-yellow-600' :
+                        'bg-gray-100 border-gray-600'
+                      }`}
+                      onClick={() => fetchAIVerificationDetails(submission.id)}
+                    >
+                      <div className="text-xs font-black" style={{
+                        fontFamily: "'Orbitron', monospace",
+                        textTransform: 'uppercase'
+                      }}>
+                        🤖 AI VERIFICATION: {
+                          submission.aiVerification.status === 'approved' ? '✅ APPROVED' :
+                          submission.aiVerification.status === 'rejected' ? '❌ REJECTED' :
+                          submission.aiVerification.status === 'error' ? '⚠️ ERROR' :
+                          '⏳ PENDING'
+                        }
+                      </div>
+                      {submission.aiVerification.confidence && (
+                        <div className="text-xs font-bold mt-1" style={{
+                          fontFamily: "'Orbitron', monospace"
+                        }}>
+                          CONFIDENCE: {submission.aiVerification.confidence}%
+                        </div>
+                      )}
+                      {submission.aiVerification.brandMentions && submission.aiVerification.brandMentions.length > 0 && (
+                        <div className="text-xs font-bold mt-1" style={{
+                          fontFamily: "'Orbitron', monospace"
+                        }}>
+                          BRANDS: {submission.aiVerification.brandMentions.slice(0, 2).join(', ')}
+                          {submission.aiVerification.brandMentions.length > 2 ? '...' : ''}
+                        </div>
+                      )}
+                      <div className="text-xs font-bold mt-1 text-blue-600" style={{
+                        fontFamily: "'Orbitron', monospace"
+                      }}>
+                        🔍 CLICK FOR DETAILS
+                      </div>
+                    </div>
+                  )}
+
                   <p className="text-black text-xs font-bold" style={{
                     fontFamily: "'Orbitron', monospace",
                     textTransform: 'uppercase'
@@ -735,6 +813,184 @@ const InfluencerDashboard = ({ walletAddress }) => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* AI Verification Details Modal */}
+      {showAIDetails && aiDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto pixel-border pixel-shadow" style={{
+            clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))'
+          }}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-black text-black" style={{
+                  fontFamily: "'Orbitron', monospace",
+                  textTransform: 'uppercase'
+                }}>🤖 AI VERIFICATION DETAILS</h3>
+                <button
+                  onClick={() => setShowAIDetails(null)}
+                  className="pixel-button px-4 py-2 text-sm font-black"
+                >
+                  ✕ CLOSE
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Status Overview */}
+                <div className={`p-4 pixel-border ${
+                  aiDetails.aiVerification?.approved ? 'bg-green-50 border-green-600' : 'bg-red-50 border-red-600'
+                }`}>
+                  <h4 className="font-black text-lg mb-2" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>
+                    STATUS: {aiDetails.aiVerification?.approved ? '✅ APPROVED' : '❌ REJECTED'}
+                  </h4>
+                  {aiDetails.aiVerification?.confidence && (
+                    <p className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>
+                      CONFIDENCE: {aiDetails.aiVerification.confidence}%
+                    </p>
+                  )}
+                </div>
+
+                {/* Reason */}
+                {aiDetails.aiVerification?.reason && (
+                  <div className="bg-gray-50 p-4 pixel-border">
+                    <h4 className="font-black mb-2" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>AI ANALYSIS REASON:</h4>
+                    <p className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>
+                      {aiDetails.aiVerification.reason}
+                    </p>
+                  </div>
+                )}
+
+                {/* Brand Mentions */}
+                {aiDetails.aiVerification?.brandMentions && aiDetails.aiVerification.brandMentions.length > 0 && (
+                  <div className="bg-blue-50 p-4 pixel-border">
+                    <h4 className="font-black mb-2" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>DETECTED BRAND MENTIONS:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {aiDetails.aiVerification.brandMentions.map((brand, index) => (
+                        <span
+                          key={index}
+                          className="bg-blue-600 text-white px-2 py-1 text-sm font-bold pixel-border"
+                          style={{ fontFamily: "'Orbitron', monospace" }}
+                        >
+                          {brand}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Requirements Check */}
+                {aiDetails.aiVerification?.meetsRequirements && (
+                  <div className="bg-yellow-50 p-4 pixel-border">
+                    <h4 className="font-black mb-2" style={{
+                      fontFamily: "'Orbitron', monospace",
+                      textTransform: 'uppercase'
+                    }}>REQUIREMENTS CHECK:</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center" style={{ fontFamily: "'Orbitron', monospace" }}>
+                        <span className={`mr-2 ${aiDetails.aiVerification.meetsRequirements.mentionsBrand ? 'text-green-600' : 'text-red-600'}`}>
+                          {aiDetails.aiVerification.meetsRequirements.mentionsBrand ? '✅' : '❌'}
+                        </span>
+                        <span className="font-bold">MENTIONS BRAND</span>
+                      </div>
+                      <div className="flex items-center" style={{ fontFamily: "'Orbitron', monospace" }}>
+                        <span className={`mr-2 ${aiDetails.aiVerification.meetsRequirements.followsGuidelines ? 'text-green-600' : 'text-red-600'}`}>
+                          {aiDetails.aiVerification.meetsRequirements.followsGuidelines ? '✅' : '❌'}
+                        </span>
+                        <span className="font-bold">FOLLOWS GUIDELINES</span>
+                      </div>
+                      <div className="flex items-center" style={{ fontFamily: "'Orbitron', monospace" }}>
+                        <span className={`mr-2 ${aiDetails.aiVerification.meetsRequirements.adequateWordCount ? 'text-green-600' : 'text-red-600'}`}>
+                          {aiDetails.aiVerification.meetsRequirements.adequateWordCount ? '✅' : '❌'}
+                        </span>
+                        <span className="font-bold">ADEQUATE WORD COUNT</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Technical Details */}
+                <div className="bg-gray-50 p-4 pixel-border">
+                  <h4 className="font-black mb-2" style={{
+                    fontFamily: "'Orbitron', monospace",
+                    textTransform: 'uppercase'
+                  }}>TECHNICAL DETAILS:</h4>
+                  <div className="space-y-1 text-sm">
+                    {aiDetails.aiVerification?.promotionalSegmentWordCount && (
+                      <p className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>
+                        PROMOTIONAL SEGMENT: {aiDetails.aiVerification.promotionalSegmentWordCount} WORDS
+                      </p>
+                    )}
+                    {aiDetails.aiVerification?.transcriptLanguage && (
+                      <p className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>
+                        TRANSCRIPT LANGUAGE: {aiDetails.aiVerification.transcriptLanguage.toUpperCase()}
+                      </p>
+                    )}
+                    {aiDetails.aiVerification?.transcriptLength && (
+                      <p className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>
+                        TRANSCRIPT LENGTH: {aiDetails.aiVerification.transcriptLength} CHARACTERS
+                      </p>
+                    )}
+                    {aiDetails.aiVerification?.processingTime && (
+                      <p className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>
+                        PROCESSING TIME: {aiDetails.aiVerification.processingTime}MS
+                      </p>
+                    )}
+                    {aiDetails.aiVerification?.verifiedAt && (
+                      <p className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>
+                        VERIFIED: {formatDate(new Date(aiDetails.aiVerification.verifiedAt).getTime())}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                {(aiDetails.aiVerification?.status === 'error' || aiDetails.aiVerification?.status === 'rejected') && (
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => {
+                        retryAIVerification(showAIDetails);
+                        setShowAIDetails(null);
+                      }}
+                      className="pixel-button px-4 py-2 font-black"
+                      style={{
+                        fontFamily: "'Orbitron', monospace",
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      🔄 RETRY VERIFICATION
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading overlay for AI details */}
+      {loadingAIDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 pixel-border pixel-shadow">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-black border-t-transparent animate-spin mx-auto mb-4" style={{
+                borderRadius: 0
+              }}></div>
+              <p className="font-black" style={{
+                fontFamily: "'Orbitron', monospace",
+                textTransform: 'uppercase'
+              }}>LOADING AI DETAILS...</p>
+            </div>
           </div>
         </div>
       )}
