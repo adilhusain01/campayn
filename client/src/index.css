@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 @import "tailwindcss";
 
 /* Pixelated Theme Variables */
@@ -10,7 +11,7 @@
 }
 
 /* Pixelated Font */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
 
 body {
   margin: 0;
