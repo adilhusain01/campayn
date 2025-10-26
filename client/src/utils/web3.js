@@ -1,25 +1,25 @@
 import { ethers } from 'ethers';
 import { CAMPAIGN_MANAGER_ADDRESS, CAMPAIGN_MANAGER_ABI } from './contract.js';
 
-export const FLOW_EVM_TESTNET = {
-  id: 545,
-  name: 'Flow EVM Testnet',
-  network: 'flow-evm-testnet',
+export const SOMNIA_TESTNET = {
+  id: 50312,
+  name: 'Somnia Testnet',
+  network: 'somnia-testnet',
   nativeCurrency: {
     decimals: 18,
-    name: 'Flow',
-    symbol: 'FLOW',
+    name: 'Somnia Testnet Token',
+    symbol: 'STT',
   },
   rpcUrls: {
     default: {
-      http: ['https://testnet.evm.nodes.onflow.org'],
+      http: ['https://dream-rpc.somnia.network'],
     },
     public: {
-      http: ['https://testnet.evm.nodes.onflow.org'],
+      http: ['https://dream-rpc.somnia.network'],
     },
   },
   blockExplorers: {
-    default: { name: 'Flow EVM Explorer', url: 'https://evm-testnet.flowscan.io' },
+    default: { name: 'Somnia Testnet Explorer', url: 'https://shannon-explorer.somnia.network/' },
   },
 };
 
@@ -43,7 +43,7 @@ export class Web3Service {
         throw new Error('No wallet found');
       }
 
-      await this.switchToFlowEVMTestnet();
+      await this.switchToSomniaTestnet();
 
       this.contract = new ethers.Contract(
         CAMPAIGN_MANAGER_ADDRESS,
@@ -58,12 +58,12 @@ export class Web3Service {
     }
   }
 
-  async switchToFlowEVMTestnet() {
+  async switchToSomniaTestnet() {
     try {
       if (window.ethereum) {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${FLOW_EVM_TESTNET.id.toString(16)}` }],
+          params: [{ chainId: `0x${SOMNIA_TESTNET.id.toString(16)}` }],
         });
       }
     } catch (switchError) {
@@ -73,19 +73,19 @@ export class Web3Service {
             method: 'wallet_addEthereumChain',
             params: [
               {
-                chainId: `0x${FLOW_EVM_TESTNET.id.toString(16)}`,
-                chainName: FLOW_EVM_TESTNET.name,
-                nativeCurrency: FLOW_EVM_TESTNET.nativeCurrency,
-                rpcUrls: [FLOW_EVM_TESTNET.rpcUrls.default.http[0]],
-                blockExplorerUrls: [FLOW_EVM_TESTNET.blockExplorers.default.url],
+                chainId: `0x${SOMNIA_TESTNET.id.toString(16)}`,
+                chainName: SOMNIA_TESTNET.name,
+                nativeCurrency: SOMNIA_TESTNET.nativeCurrency,
+                rpcUrls: [SOMNIA_TESTNET.rpcUrls.default.http[0]],
+                blockExplorerUrls: [SOMNIA_TESTNET.blockExplorers.default.url],
               },
             ],
           });
         } catch (addError) {
-          throw new Error('Failed to add Flow EVM Testnet network');
+          throw new Error('Failed to add Somnia Testnet network');
         }
       } else if (switchError.code !== 4902) {
-        throw new Error('Failed to switch to Flow EVM Testnet network');
+        throw new Error('Failed to switch to Somnia Testnet network');
       }
     }
   }

@@ -63,7 +63,7 @@ function LandingPage() {
           <div className="bg-white pixel-border p-4 text-black font-bold" style={{
             fontFamily: "'Orbitron', monospace"
           }}>
-            FLOW BLOCKCHAIN POWERED
+            SOMNIA BLOCKCHAIN POWERED
           </div>
         </div>
       </main>
@@ -84,7 +84,7 @@ function LandingPage() {
             <ul className="space-y-4">
               <li className="flex items-center">
                 <span className="text-green-600 font-black mr-4 text-xl">►</span>
-                <span className="font-bold text-black" style={{ fontFamily: "'Orbitron', monospace" }}>CREATE CAMPAIGNS WITH FLOW REWARDS</span>
+                <span className="font-bold text-black" style={{ fontFamily: "'Orbitron', monospace" }}>CREATE CAMPAIGNS WITH STT REWARDS</span>
               </li>
               <li className="flex items-center">
                 <span className="text-green-600 font-black mr-4 text-xl">►</span>
@@ -118,7 +118,7 @@ function LandingPage() {
               </li>
               <li className="flex items-center">
                 <span className="text-purple-600 font-black mr-4 text-xl">►</span>
-                <span className="font-bold text-black" style={{ fontFamily: "'Orbitron', monospace" }}>EARN FLOW REWARDS</span>
+                <span className="font-bold text-black" style={{ fontFamily: "'Orbitron', monospace" }}>EARN STT REWARDS</span>
               </li>
             </ul>
           </div>
@@ -135,7 +135,7 @@ function LandingPage() {
             textTransform: 'uppercase',
             letterSpacing: '1px'
           }}>
-            © 2024 CAMPAYN ● PIXEL MARKETING PLATFORM ● FLOW BLOCKCHAIN
+            © 2025 CAMPAYN ● PIXEL MARKETING PLATFORM ● SOMNIA BLOCKCHAIN
           </p>
         </div>
       </footer>

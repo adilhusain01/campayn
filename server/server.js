@@ -6,15 +6,16 @@ import mongoose from 'mongoose';
 import axios from 'axios';
 import { ethers } from 'ethers';
 
+// Load environment variables first
+dotenv.config();
+
 // Import MongoDB models
 import Campaign from './models/Campaign.js';
 import Influencer from './models/Influencer.js';
 import Submission from './models/Submission.js';
 
-// Import AI services
+// Import AI services (after env vars are loaded)
 import aiVerificationService from './services/aiVerificationService.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -141,7 +142,7 @@ const youtubeAPI = new YouTubeAPIManager();
 import { CAMPAIGN_MANAGER_ADDRESS, CAMPAIGN_MANAGER_ABI } from './utils/contract.js';
 
 console.log('⛓️ Initializing blockchain connection...');
-const provider = new ethers.JsonRpcProvider('https://testnet.evm.nodes.onflow.org');
+const provider = new ethers.JsonRpcProvider('https://dream-rpc.somnia.network');
 console.log('🔐 Creating wallet instance...');
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 console.log(`💼 Wallet address: ${wallet.address}`);
@@ -739,6 +740,12 @@ app.post('/api/submissions', async (req, res) => {
       return res.status(400).json({ error: 'YouTube channel must be verified before submitting videos. Please verify your channel in your profile.' });
     }
 
+    // Get campaign data early for use in AI verification
+    const campaign = await Campaign.findOne({ blockchainId: campaignId });
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+
     const videoId = extractVideoIdFromUrl(youtubeUrl);
     if (!videoId) {
       return res.status(400).json({ error: 'Invalid YouTube URL' });
@@ -768,10 +775,6 @@ app.post('/api/submissions', async (req, res) => {
       console.log(`✅ Video channel verification passed for ${videoId} - belongs to ${influencer.youtubeChannelName}`);
 
       // Check if video was published after campaign creation
-      const campaign = await Campaign.findOne({ blockchainId: campaignId });
-      if (!campaign) {
-        return res.status(404).json({ error: 'Campaign not found' });
-      }
 
       const videoPublishedAt = new Date(video.snippet.publishedAt);
       const campaignCreatedAt = new Date(campaign.createdAt);
@@ -932,6 +935,7 @@ app.get('/api/campaigns/:id/submissions', async (req, res) => {
 
     const formattedSubmissions = submissions.map(submission => ({
       ...submission,
+      id: submission._id,
       wallet_address: submission.influencerId.walletAddress,
       youtube_channel_name: submission.influencerId.youtubeChannelName
     }));
@@ -1127,10 +1131,10 @@ cron.schedule('0 * * * *', async () => {
 
               console.log(`🎉 Campaign ${campaignId} completed with ${winners.length} winner(s):`);
               for (let i = 0; i < winners.length; i++) {
-                console.log(`   ${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : 'rd'} place: ${winners[i]} - ${ethers.formatEther(actualRewards[i])} FLOW (${rewardPercentages[i]}%)`);
+                console.log(`   ${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : 'rd'} place: ${winners[i]} - ${ethers.formatEther(actualRewards[i])} STT (${rewardPercentages[i]}%)`);
               }
               if (refundAmount > 0) {
-                console.log(`💰 Refund to creator: ${ethers.formatEther(refundAmount)} FLOW`);
+                console.log(`💰 Refund to creator: ${ethers.formatEther(refundAmount)} STT`);
               }
             } catch (error) {
               console.error(`❌ Error completing campaign ${campaignId}:`, error);
@@ -1148,7 +1152,7 @@ cron.schedule('0 * * * *', async () => {
                 await tx.wait();
 
                 const totalReward = campaignInfo[1]; // Total reward in wei
-                console.log(`💰 Emergency withdraw completed for campaign ${campaignId} - full refund of ${ethers.formatEther(totalReward)} FLOW returned to creator`);
+                console.log(`💰 Emergency withdraw completed for campaign ${campaignId} - full refund of ${ethers.formatEther(totalReward)} STT returned to creator`);
               } catch (error) {
                 console.error(`❌ Error performing emergency withdraw for campaign ${campaignId}:`, error);
               }

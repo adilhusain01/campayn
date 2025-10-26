@@ -546,7 +546,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
                         disabled={hasSubmitted}
                         style={hasSubmitted ? { backgroundColor: '#f0f0f0', color: '#666' } : {}}
                       >
-                        {hasSubmitted ? '✓ SUBMITTED: ' : ''}{(campaign.title || `CAMPAIGN #${campaign.id}`).toUpperCase()} - {campaign.totalReward} FLOW
+                        {hasSubmitted ? '✓ SUBMITTED: ' : ''}{(campaign.title || `CAMPAIGN #${campaign.id}`).toUpperCase()} - {campaign.totalReward} STT
                       </option>
                     );
                   })}
@@ -676,7 +676,7 @@ const InfluencerDashboard = ({ walletAddress }) => {
                     <div className="text-center p-3 bg-black text-white pixel-border">
                       <div className="block text-lg text-white font-black" style={{
                         fontFamily: "'Orbitron', monospace"
-                      }}>{campaign.totalReward} FLOW</div>
+                      }}>{campaign.totalReward} STT</div>
                       <div className="text-sm text-white font-bold" style={{
                         fontFamily: "'Orbitron', monospace"
                       }}>REWARD</div>

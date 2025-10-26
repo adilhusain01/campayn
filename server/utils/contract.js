@@ -1,4 +1,4 @@
-export const CAMPAIGN_MANAGER_ADDRESS = '0x91C0979942149feD82672d2CeA65311073547178';
+export const CAMPAIGN_MANAGER_ADDRESS = '0xE121b3613706daeab199598ef8B1CBeaDa811327';
 export const CAMPAIGN_MANAGER_ABI =[
 	{
 		"inputs": [],
@@ -567,4 +567,4 @@ export const CAMPAIGN_MANAGER_ABI =[
 		"stateMutability": "view",
 		"type": "function"
 	}
-];
+]

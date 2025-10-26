@@ -119,7 +119,7 @@ const CreateCampaign = ({ walletAddress }) => {
       setSuccess(`Campaign created successfully! Campaign ID: ${result.campaignId}`);
 
       toast.success('Campaign Created!', {
-        description: `Your campaign "${formData.title}" has been launched successfully with ${formData.rewardAmount} FLOW in rewards.`,
+        description: `Your campaign "${formData.title}" has been launched successfully with ${formData.rewardAmount} STT in rewards.`,
         duration: 6000,
       });
 
@@ -146,7 +146,7 @@ const CreateCampaign = ({ walletAddress }) => {
       // Check for specific error types
       if (error.message && error.message.includes('insufficient funds')) {
         toast.error('Insufficient Funds', {
-          description: `You need ${formData.rewardAmount} FLOW to create this campaign. Please add more FLOW to your wallet.`,
+          description: `You need ${formData.rewardAmount} STT to create this campaign. Please add more STT to your wallet.`,
           duration: 6000,
         });
       } else if (error.message && error.message.includes('user rejected')) {
@@ -358,7 +358,7 @@ const CreateCampaign = ({ walletAddress }) => {
                 <label htmlFor="rewardAmount" className="block mb-2 font-black text-black" style={{
                   fontFamily: "'Orbitron', monospace",
                   textTransform: 'uppercase'
-                }}>► TOTAL REWARD (FLOW)</label>
+                }}>► TOTAL REWARD (STT)</label>
                 <div className="relative">
                   <input
                     type="number"
@@ -557,7 +557,7 @@ const CreateCampaign = ({ walletAddress }) => {
                     }}>Total Reward:</div>
                     <div className="font-bold text-yellow-400" style={{
                       fontFamily: "'Orbitron', monospace"
-                    }}>{formData.rewardAmount} FLOW</div>
+                    }}>{formData.rewardAmount} STT</div>
                   </div>
 
                   <div className="bg-black text-white p-3 pixel-border">
@@ -698,7 +698,7 @@ const CreateCampaign = ({ walletAddress }) => {
                     <div className="space-y-1 text-sm font-bold" style={{
                       fontFamily: "'Orbitron', monospace"
                     }}>
-                      <div>• Higher rewards attract more influencers. Consider 1+ FLOW for viral campaigns!</div>
+                      <div>• Higher rewards attract more influencers. Consider 1+ STT for viral campaigns!</div>
                       <div>• AI verification ensures genuine promotional content and prevents fraud.</div>
                       {aiSettings.enabled && (
                         <div>• Set {aiSettings.minimumWordCount} word minimum to ensure substantial brand mentions.</div>
@@ -826,7 +826,7 @@ const CreateCampaign = ({ walletAddress }) => {
                 </span>
               ) : (
                 <span className="flex items-center justify-center">
-                  🚀 LAUNCH CAMPAIGN ({formData.rewardAmount} FLOW)
+                  🚀 LAUNCH CAMPAIGN ({formData.rewardAmount} STT)
                 </span>
               )}
             </button>
@@ -846,7 +846,7 @@ const CreateCampaign = ({ walletAddress }) => {
         }}>
           <li className="flex items-start">
             <span className="text-black font-black mr-3 text-lg">►</span>
-            YOU CREATE A CAMPAIGN AND DEPOSIT FLOW FOR REWARDS
+            YOU CREATE A CAMPAIGN AND DEPOSIT STT FOR REWARDS
           </li>
           <li className="flex items-start">
             <span className="text-black font-black mr-3 text-lg">►</span>

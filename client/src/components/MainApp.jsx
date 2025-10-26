@@ -217,7 +217,7 @@ function MainApp() {
                 <ul className="text-left list-none p-0 space-y-3">
                   <li className="flex items-center py-2">
                     <span className="text-green-600 font-black mr-3 text-lg">►</span>
-                    <span className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>CREATE CAMPAIGNS WITH FLOW REWARDS</span>
+                    <span className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>CREATE CAMPAIGNS WITH STT REWARDS</span>
                   </li>
                   <li className="flex items-center py-2">
                     <span className="text-green-600 font-black mr-3 text-lg">►</span>
@@ -245,7 +245,7 @@ function MainApp() {
                   </li>
                   <li className="flex items-center py-2">
                     <span className="text-purple-600 font-black mr-3 text-lg">►</span>
-                    <span className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>EARN FLOW REWARDS</span>
+                    <span className="font-bold" style={{ fontFamily: "'Orbitron', monospace" }}>EARN STT REWARDS</span>
                   </li>
                 </ul>
               </div>

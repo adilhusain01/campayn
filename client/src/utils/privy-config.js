@@ -35,24 +35,24 @@ export const privyConfig = {
   }
 };
 
-export const flowEvmTestnet = {
-  id: 545,
-  name: 'Flow EVM Testnet',
-  network: 'flow-evm-testnet',
+export const somniaTestnet = {
+  id: 50312,
+  name: 'Somnia Testnet',
+  network: 'somnia-testnet',
   nativeCurrency: {
     decimals: 18,
-    name: 'Flow',
-    symbol: 'FLOW',
+    name: 'Somnia Testnet Token',
+    symbol: 'STT',
   },
   rpcUrls: {
     default: {
-      http: ['https://testnet.evm.nodes.onflow.org'],
+      http: ['https://dream-rpc.somnia.network'],
     },
   },
   blockExplorers: {
     default: {
-      name: 'Flow EVM Explorer',
-      url: 'https://evm-testnet.flowscan.io'
+      name: 'Somnia Testnet Explorer',
+      url: 'https://shannon-explorer.somnia.network/'
     },
   },
 };

@@ -140,7 +140,7 @@ const CampaignList = ({ walletAddress }) => {
         });
       } else if (error.message && error.message.includes('insufficient funds')) {
         toast.error('Insufficient Funds', {
-          description: 'You need more FLOW to cover the transaction gas fees.',
+          description: 'You need more STT to cover the transaction gas fees.',
           duration: 5000,
         });
       } else if (error.message && error.message.includes('Registration period has ended')) {
@@ -244,7 +244,7 @@ const CampaignList = ({ walletAddress }) => {
             }}>
               <p className="text-black"><span className="font-black">► DESCRIPTION:</span> {selectedCampaign.description}</p>
               <p className="text-black"><span className="font-black">► REQUIREMENTS:</span> {selectedCampaign.requirements}</p>
-              <p className="text-black"><span className="font-black">► TOTAL REWARD:</span> {selectedCampaign.totalReward} FLOW</p>
+              <p className="text-black"><span className="font-black">► TOTAL REWARD:</span> {selectedCampaign.totalReward} STT</p>
               <p className="text-black"><span className="font-black">► PARTICIPANTS:</span> {selectedCampaign.influencerCount}</p>
               <p className="text-black"><span className="font-black">► REGISTRATION ENDS:</span> {formatDate(selectedCampaign.registrationEnd)}</p>
               <p className="text-black"><span className="font-black">► CAMPAIGN ENDS:</span> {formatDate(selectedCampaign.campaignEnd)}</p>
@@ -415,7 +415,7 @@ const CampaignList = ({ walletAddress }) => {
                     <div className="text-center p-3 bg-black text-white pixel-border">
                       <div className="block text-lg font-black" style={{
                         fontFamily: "'Orbitron', monospace"
-                      }}>{campaign.totalReward} FLOW</div>
+                      }}>{campaign.totalReward} STT</div>
                       <div className="text-sm font-bold" style={{
                         fontFamily: "'Orbitron', monospace"
                       }}>TOTAL REWARD</div>

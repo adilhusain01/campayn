@@ -3,11 +3,43 @@ import { Supadata } from '@supadata/js';
 
 class AIVerificationService {
   constructor() {
-    this.genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
-    this.supadata = new Supadata({
-      apiKey: process.env.SUPADATA_API_KEY,
-    });
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    console.log(`🔧 Initializing AIVerificationService...`);
+    console.log(`🔑 GEMINI_API_KEY configured: ${!!process.env.GEMINI_API_KEY}`);
+    console.log(`🔑 SUPADATA_API_KEY configured: ${!!process.env.SUPADATA_API_KEY}`);
+    console.log(`🔑 SUPADATA_API_KEY value: ${process.env.SUPADATA_API_KEY}`);
+
+    // Don't initialize clients here - will be lazy loaded
+    this._genAI = null;
+    this._model = null;
+    this._supadata = null;
+
+    console.log(`✅ AIVerificationService initialized successfully`);
+  }
+
+  // Lazy initialization of Gemini AI client
+  getGeminiModel() {
+    if (!this._model) {
+      console.log(`🔧 Lazy initializing Gemini AI client...`);
+      console.log(`🔑 GEMINI_API_KEY at lazy init: ${!!process.env.GEMINI_API_KEY}`);
+      console.log(`🔑 GEMINI_API_KEY value: ${process.env.GEMINI_API_KEY}`);
+      this._genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      this._model = this._genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      console.log(`✅ Gemini AI client initialized`);
+    }
+    return this._model;
+  }
+
+  // Lazy initialization of Supadata client
+  getSupadataClient() {
+    if (!this._supadata) {
+      console.log(`🔧 Lazy initializing Supadata client...`);
+      console.log(`🔑 SUPADATA_API_KEY at lazy init: ${process.env.SUPADATA_API_KEY}`);
+      this._supadata = new Supadata({
+        apiKey: process.env.SUPADATA_API_KEY,
+      });
+      console.log(`✅ Supadata client initialized`);
+    }
+    return this._supadata;
   }
 
   /**
@@ -18,18 +50,28 @@ class AIVerificationService {
   async getVideoTranscript(videoId) {
     try {
       console.log(`🎬 Fetching transcript for video: ${videoId}`);
+      console.log(`🔑 Supadata API Key configured: ${!!process.env.SUPADATA_API_KEY}`);
+      console.log(`🔑 Supadata API Key length: ${process.env.SUPADATA_API_KEY?.length || 0} characters`);
+      console.log(`🔑 Supadata API Key value: ${process.env.SUPADATA_API_KEY}`);
 
-      const transcript = await this.supadata.youtube.transcript({
-        videoId: videoId,
-        text: true // Get plain text format
+      const supadata = this.getSupadataClient();
+      const transcript = await supadata.transcript({
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        text: true, // Get plain text format
+        mode: "auto" // Use auto mode for best results
       });
 
-      console.log(`✅ Transcript fetched successfully. Length: ${transcript.content?.length || 0} characters`);
+      console.log(`✅ Transcript fetched successfully. Response:`, transcript);
+      console.log(`📝 Content type: ${typeof transcript.content}`);
+      console.log(`📝 Content length: ${Array.isArray(transcript.content) ? transcript.content.length : (transcript.content?.length || 0)} items/characters`);
       console.log(`🌐 Language: ${transcript.lang}, Available languages: ${transcript.availableLangs?.join(', ')}`);
 
       return transcript;
     } catch (error) {
       console.error(`❌ Error fetching transcript for video ${videoId}:`, error.message);
+      console.error(`❌ Full error details:`, error);
+      console.error(`❌ Error status:`, error.status || error.code);
+      console.error(`❌ Error response:`, error.response?.data || error.response);
       throw new Error(`Failed to fetch video transcript: ${error.message}`);
     }
   }
@@ -46,7 +88,8 @@ class AIVerificationService {
 
       const prompt = this.buildAnalysisPrompt(transcript, campaignData);
 
-      const result = await this.model.generateContent(prompt);
+      const model = this.getGeminiModel();
+      const result = await model.generateContent(prompt);
       const response = result.response;
       const text = response.text();
 
@@ -148,17 +191,27 @@ Be thorough but fair in your analysis. The goal is to ensure genuine promotional
       // Step 1: Get transcript
       const transcriptData = await this.getVideoTranscript(videoId);
 
-      if (!transcriptData.content || transcriptData.content.trim().length === 0) {
+      // Check if transcript is available and has content
+      const hasTranscript = transcriptData.content &&
+        ((Array.isArray(transcriptData.content) && transcriptData.content.length > 0) ||
+         (typeof transcriptData.content === 'string' && transcriptData.content.trim().length > 0));
+
+      if (!hasTranscript) {
         return {
           approved: false,
-          reason: 'No transcript available for this video. The video might not have captions or subtitles.',
+          reason: 'No transcript available for this video. The video might not have captions or subtitles enabled.',
           error: 'NO_TRANSCRIPT',
           processingTime: Date.now() - startTime
         };
       }
 
       // Step 2: Analyze content with AI
-      const analysisResult = await this.analyzeTranscriptContent(transcriptData.content, campaignData);
+      // Convert content to string if it's an array
+      const transcriptText = Array.isArray(transcriptData.content)
+        ? transcriptData.content.join(' ')
+        : transcriptData.content;
+
+      const analysisResult = await this.analyzeTranscriptContent(transcriptText, campaignData);
 
       // Step 3: Return comprehensive result
       const result = {
@@ -169,7 +222,7 @@ Be thorough but fair in your analysis. The goal is to ensure genuine promotional
         promotionalSegmentWordCount: analysisResult.promotionalSegmentWordCount || 0,
         meetsRequirements: analysisResult.meetsRequirements || {},
         transcriptLanguage: transcriptData.lang,
-        transcriptLength: transcriptData.content.length,
+        transcriptLength: transcriptText.length,
         processingTime: Date.now() - startTime
       };
 
