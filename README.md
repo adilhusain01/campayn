@@ -1,83 +1,132 @@
-# VIBE
 
----
+# CAMPAYN
 
-## Problem
+## Where Real People Drive Real Results
 
-At TOKEN2049 Singapore, I noticed Web3 events still rely on Web2 tools like Kahoot for interactive games. Manual prize distribution is inefficient, and creating game content takes too much time.
+https://campayn-one.vercel.app
 
----
+**Nobody watches ads anymore. Everyone watches creators.** We connect brands with influencers who actually reach people. Through:
 
-## Solution
+-   30s-60s Ad of the brand's product/service in their routine YouTube video
+    
+-   Dedicated Youtube short
+    
+-   Ad in routine Instagram Reel or a Dedicated reel (coming soon)
+    
 
-VIBE is a Web3 gaming platform where:
+**Brands pay in SOMI tokens, best performing creators Win automatically. No middlemen, full transparency, instant payments.**
 
-- Organizers deposit tokens for prize pools
-- Winners receive rewards directly in their wallets
-- **Gemini AI Agent** generates game content from any source (prompts, PDFs, webpage URLs, YouTube videos)
-- Platform takes 5% commission per game organization
+----------
 
----
+## Why Traditional Ads Don't Work Anymore
 
-## Current Games
+People skip ads. They install ad blockers. They scroll past sponsored posts. But they spend hours watching their favorite creators on YouTube and Instagram.
 
-1. **Quiz Game** - Multi-choice questions
-2. **Fact Check Game** - True/false verification challenges
+**The truth:**
 
-Both games support AI content generation from:
+-   People trust influencers more than ads
+    
+-   Short videos get 10x more views than regular ads
+    
+-   Young audiences actively avoid ads but love creator content
+    
 
-- Text prompts/topics
-- PDF uploads
-- Webpage URLs
-- YouTube video links
+**Companies still buying traditional ads are wasting money on something nobody sees.**
 
----
+----------
 
-## Key Features
+## **How CAMPAYN Works**
 
-- **No wallet required (eg. Metamask)** - Social login with non-custodial wallets via Privy
-- **AI-powered content generation** - Create games instantly from multiple sources
-- **Live on mainnet** - Real token rewards on Somnia blockchain
-- **Mobile responsive** - Full functionality across all devices
-- **Withdraw/Deposit** - $ Instantly, thanks to Privy and Somnia Mannet
+### For Brands:
 
----
+-   Create campaign with all the requirements and amount of words needed in the Ad
+    
+-   Set the budget in SOMI tokens and deposit it
+    
+-   The amount gets staked automatically in Ankr Liquid Staking Protocol for a good APY while campaign is live
+    
+-   Automatic payout upon deadline to the top performers (50%, 30%, 20% split) + The Net profit of the liquid staking goes straight and equal to the non-winners to cheer them up
+    
+-   Miscellenous amount goes back to the creator
+    
+-   See exactly how the campaign performs with real numbers
+    
 
-## Tech Stack
+### For Creators:
 
-- Smart contracts on Somnia blockchain for transparent reward distribution
-- React + Tailwind CSS frontend. NodeJs for backend. MongoDB for DB
-- Gemini API for AI content generation
-- Privy for wallet abstraction and Fund management
+-   Make a 30s-60s Ad clip in normal routine youtube video or create a dedicated Youtube short for the brand's product/service
+    
+-   Get paid directly - no agency taking a cut
+    
+-   See exactly where they rank in real-time
+    
+-   Earn SOMI tokens instantly when they win
+    
+-   No crypto experience needed - login with social accounts usign Privy
+    
+-   Earn tokens whether you win or not ;)
+    
 
----
+----------
 
-## Challenges Solved
+## What We Offer Now
 
-- Secure automated reward distribution via smart contracts
-- Quality AI-generated game content from diverse sources
-- Seamless UX despite blockchain transaction times
+**Start a Campaign** - Set your goals, deadline, and rewards
 
----
+**Fair Scoring** - Our system prevents cheating and rewards real engagement
 
-## What's Next
+**Automatic Payments** - Winners and Non-winners get paid instantly through smart contracts
 
-- Expand game library beyond quiz and fact-check
-- Telegram Mini App
-- Native token launch
-- Custom token creation for games
-- Real-time tournaments with larger prize pools
-- Educational institution partnerships
-- NFT rewards
+**Easy to Use:**
 
----
+-   Login with Google or social accounts
+    
+-   Connect your YouTube channel
+    
+-   Track your performance live
+    
+-   Works on any device
+    
+-   Videos are verified through multiple checks with Youtube and Gemini AI to prevent fake submissions
+    
 
-## Impact
+----------
 
-Transform how Web3 communities engage, learn, and distribute value - making every interaction rewarding for both organizers and participants.
+## Why This Matters
 
----
+Traditional advertising is dead. Brands that don't adapt will lose to competitors who do.
 
-## Mainnet Deployed Contract Address
+Creators are the new way to reach customers - they build real relationships with audiences who actually listen. CAMPAYN makes this shift simple for everyone.
 
-0x69579be58808F847a103479Bb023E9c457127369
+**For brands:** Stop wasting money on ads nobody watches. Start investing in creators people love.
+
+**For creators:** Stop waiting for payments. Stop losing money to agencies. Get paid fairly for your influence.
+
+----------
+
+## Coming Soon
+
+-   Support for Insta Reels, TikTok videos, and Twitter posts
+    
+-   Tier wise prize distruibution mechanism so big creators don’t abuse the platform and small creators get their fare share
+    
+-   Even robust AI algorithm to further reduce cheating
+    
+-   Achievement badges and NFTs good performers
+    
+
+----------
+
+## The Choice is Simple
+
+Keep buying expensive ads that nobody watches, or start working with creators who people actually follow and trust.
+
+The best brands are already making the switch. Every day you wait, your competitors get further ahead.
+
+----------
+
+### Start Today
+
+**Contract:** `0xE121b3613706daeab199598ef8B1CBeaDa811327`
+
+Launch your first campaign at https://campayn-one.vercel.app
